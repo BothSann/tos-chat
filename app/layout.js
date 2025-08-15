@@ -1,3 +1,4 @@
+import { roboto } from "@/lib/fonts";
 import "./globals.css";
 
 export const metadata = {
@@ -8,7 +9,11 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body
+        className={`${roboto.className} text-white bg-gray-900 min-h-screen`}
+      >
+        {children}
+      </body>
     </html>
   );
 }
