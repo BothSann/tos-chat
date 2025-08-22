@@ -134,11 +134,6 @@ export default function ChatArea() {
     unsubscribeFromGroup,
   ]);
 
-  // DISABLED: MessageList now handles all scrolling to prevent conflicts
-  // useEffect(() => {
-  //   scrollToBottom();
-  // }, [conversationId]);
-
   // Smart message sync - checks for new messages and adds them smoothly
   useEffect(() => {
     if (!activeConversation) return;
@@ -183,10 +178,6 @@ export default function ChatArea() {
           );
 
           if (newMessages.length > 0) {
-            console.log(
-              `🆕 Found ${newMessages.length} new messages, adding them smoothly`
-            );
-
             // Add each new message individually for smooth appearance
             newMessages.forEach((newMessage) => {
               addMessage(newMessage);
@@ -196,7 +187,6 @@ export default function ChatArea() {
           }
         }
       } catch (error) {
-        console.warn("Message sync failed:", error);
       } finally {
         setIsSyncing(false);
       }
@@ -237,9 +227,7 @@ export default function ChatArea() {
       if (response.success) {
         loadMessages(currentConversationId, response.data.messages);
       }
-    } catch (error) {
-      console.error("Failed to load messages:", error);
-    }
+    } catch (error) {}
   };
 
   const handleSendMessage = async (messageData) => {
@@ -269,12 +257,6 @@ export default function ChatArea() {
       } else {
         // Handle text messages
         if (activeConversation.type === "group") {
-          console.log("ChatArea: Sending group message:", {
-            groupId: activeConversation.group.id,
-            messageData: messageData,
-            groupInfo: activeConversation.group,
-          });
-
           response = await apiService.sendGroupMessage(
             activeConversation.group.id,
             messageData
@@ -284,28 +266,14 @@ export default function ChatArea() {
             ...messageData,
             recipientUsername: activeConversation.user.username,
           };
-          console.log("ChatArea: Sending private message:", privateMessageData);
-
           response = await apiService.sendPrivateMessage(privateMessageData);
         }
       }
 
-      console.log(
-        "📤 ChatArea: Message sent via API, expecting WebSocket notification from backend..."
-      );
-
       // Add message to local store immediately for instant UI update
       if (response.success && response.data) {
-        console.log("ChatArea: API response data:", response.data);
-
         // Handle different response formats from backend
         if (response.success && response.data) {
-          console.log(
-            "ChatArea: Response data type:",
-            typeof response.data,
-            response.data
-          );
-
           // Check if response.data is just an ID (number) or a full message object
           if (
             typeof response.data === "number" ||
@@ -340,11 +308,6 @@ export default function ChatArea() {
                 groupName: activeConversation.group.name,
               }),
             };
-
-            console.log(
-              "ChatArea: Created temp message for immediate display:",
-              tempMessage
-            );
             addMessage(tempMessage);
           } else {
             // API returned full message object
@@ -355,25 +318,17 @@ export default function ChatArea() {
             ) {
               response.data.recipientId = activeConversation.user.id;
             }
-
-            console.log(
-              "ChatArea: Adding full message to local store:",
-              response.data
-            );
             addMessage(response.data);
           }
         }
       }
     } catch (error) {
-      console.error("Failed to send message:", error);
-
       // Check if the error indicates the user is blocked
       if (
         error.response?.status === 403 ||
         error.response?.data?.message?.includes("blocked") ||
         error.response?.data?.message?.includes("Blocked")
       ) {
-        console.log("User is blocked, updating state");
         setIsBlocked(true);
       }
 

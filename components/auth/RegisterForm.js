@@ -27,9 +27,6 @@ export default function RegisterForm() {
 
   const onSubmit = async (data) => {
     try {
-      console.log("=== REGISTER FORM: Starting registration process ===");
-      console.log("Registering with:", { ...data, password: "[HIDDEN]" });
-
       setIsLoading(true);
       const { confirmPassword, ...registerData } = data;
 
@@ -37,8 +34,6 @@ export default function RegisterForm() {
       const response = await apiService.register(registerData);
       
       if (response.success) {
-        console.log("Registration successful!");
-
         addNotification({
           type: "success",
           title: "Account Created Successfully!",
@@ -53,7 +48,6 @@ export default function RegisterForm() {
       }
     } catch (error) {
       setIsLoading(false);
-      console.error("Registration error:", error);
       const errorMessage =
         error.response?.data?.message || error.message || "Registration failed";
 

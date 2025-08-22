@@ -46,11 +46,7 @@ export default function LoginForm() {
 
       // Navigate based on user role
       const userData = result.user || useAuthStore.getState().user;
-      console.log("🔍 Login - User data after login:", userData);
-      console.log("🔍 Login - User role:", userData?.role);
-      console.log("🔍 Login - User isAdmin:", userData?.isAdmin);
       const destination = userData?.role === "ADMIN" ? "/admin" : "/dashboard";
-      console.log("🔍 Login - Destination:", destination);
       router.push(destination);
     } catch (error) {
       setIsLoading(false);

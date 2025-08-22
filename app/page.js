@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/useStore";
+import Redirect from "@/components/ui/Redirect";
 
 export default function Home() {
   const router = useRouter();
@@ -34,10 +35,5 @@ export default function Home() {
     handleRedirect();
   }, [isAuthenticated, user, checkAuth, router]);
 
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-900">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
-      <div className="ml-4 text-white">Redirecting...</div>
-    </div>
-  );
+  return <Redirect message="Checking authentication..." />;
 }

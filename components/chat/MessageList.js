@@ -225,70 +225,71 @@ export default function MessageList({
       <div className="min-h-full flex flex-col justify-end p-4">
         <div className="space-y-4">
           {groupedMessages.map((item) => {
-          if (item.type === "date") {
-            return (
-              <div key={item.key} className="flex justify-center">
-                <div className="bg-gray-700 px-3 py-1 rounded-full text-xs text-gray-300">
-                  {item.date}
+            if (item.type === "date") {
+              return (
+                <div key={item.key} className="flex justify-center">
+                  <div className="bg-gray-700 px-3 py-1 rounded-full text-xs text-gray-300">
+                    {item.date}
+                  </div>
                 </div>
-              </div>
+              );
+            }
+
+            const isOwnMessage = item.senderId === currentUser?.id;
+
+            // Get avatar URL - try multiple sources
+            const senderAvatar =
+              item.senderAvatar ||
+              item.messages[0]?.senderAvatarUrl ||
+              (conversation?.type === "private" && !isOwnMessage
+                ? conversation?.user?.avatarUrl
+                : null) ||
+              // For group messages, try to find avatar from contacts
+              (conversation?.type === "group" && !isOwnMessage
+                ? findSenderAvatar(item.senderId, item.senderUsername)
+                : null);
+
+            // Debug logging for avatar resolution
+            if (
+              conversation?.type === "group" &&
+              !isOwnMessage &&
+              !senderAvatar
+            ) {
+              console.log(
+                `💾 Avatar lookup for ${item.senderName} (${item.senderUsername}):`,
+                {
+                  senderId: item.senderId,
+                  senderUsername: item.senderUsername,
+                  messageAvatarUrl: item.messages[0]?.senderAvatarUrl,
+                  contactsCount: contacts.length,
+                  foundContact: contacts.find(
+                    (c) =>
+                      c.id === item.senderId ||
+                      c.username === item.senderUsername
+                  ),
+                }
+              );
+            }
+
+            return (
+              <MessageBubble
+                key={item.key}
+                messages={item.messages}
+                senderName={item.senderName}
+                senderUsername={item.senderUsername}
+                senderAvatar={senderAvatar}
+                currentUserAvatar={currentUser?.avatarUrl}
+                isOwnMessage={isOwnMessage}
+                showAvatar={!isOwnMessage}
+              />
             );
-          }
+          })}
 
-          const isOwnMessage = item.senderId === currentUser?.id;
-
-          // Get avatar URL - try multiple sources
-          const senderAvatar =
-            item.senderAvatar ||
-            item.messages[0]?.senderAvatarUrl ||
-            (conversation?.type === "private" && !isOwnMessage
-              ? conversation?.user?.avatarUrl
-              : null) ||
-            // For group messages, try to find avatar from contacts
-            (conversation?.type === "group" && !isOwnMessage
-              ? findSenderAvatar(item.senderId, item.senderUsername)
-              : null);
-
-          // Debug logging for avatar resolution
-          if (
-            conversation?.type === "group" &&
-            !isOwnMessage &&
-            !senderAvatar
-          ) {
-            console.log(
-              `💾 Avatar lookup for ${item.senderName} (${item.senderUsername}):`,
-              {
-                senderId: item.senderId,
-                senderUsername: item.senderUsername,
-                messageAvatarUrl: item.messages[0]?.senderAvatarUrl,
-                contactsCount: contacts.length,
-                foundContact: contacts.find(
-                  (c) =>
-                    c.id === item.senderId || c.username === item.senderUsername
-                ),
-              }
-            );
-          }
-
-          return (
-            <MessageBubble
-              key={item.key}
-              messages={item.messages}
-              senderName={item.senderName}
-              senderUsername={item.senderUsername}
-              senderAvatar={senderAvatar}
-              currentUserAvatar={currentUser?.avatarUrl}
-              isOwnMessage={isOwnMessage}
-              showAvatar={!isOwnMessage}
-            />
-          );
-        })}
-
-        {/* Typing Indicator */}
-        <TypingIndicator
-          conversation={conversation}
-          currentUser={currentUser}
-        />
+          {/* Typing Indicator */}
+          <TypingIndicator
+            conversation={conversation}
+            currentUser={currentUser}
+          />
 
           <div ref={messagesEndRef} />
         </div>

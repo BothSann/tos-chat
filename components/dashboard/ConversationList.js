@@ -247,7 +247,7 @@ export default function ConversationList() {
 
   const formatLastMessageTime = (timestamp) => {
     if (!timestamp) return "";
-    
+
     try {
       const date = new Date(timestamp);
       if (isNaN(date.getTime())) {
@@ -255,7 +255,7 @@ export default function ConversationList() {
       }
       return formatDistanceToNow(date, { addSuffix: true });
     } catch (error) {
-      console.warn('Invalid conversation timestamp:', timestamp, error);
+      console.warn("Invalid conversation timestamp:", timestamp, error);
       return "";
     }
   };
