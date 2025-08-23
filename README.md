@@ -294,4 +294,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**តោះឆាត** - Building connections through conversation 💬
+**តោះឆាត** - Building connections through conversation
