@@ -89,6 +89,19 @@ Agreed 2026-10-28. The how-to lives in `.claude/rules/web-*.md`; this section re
 - **Login:** GitHub and Google via plain `<a href="/api/auth/...">`; Telegram widget as a client leaf.
 - **shadcn:** `components/ui/**` is vendor code, exempt from the composition rules.
 
+## Backend rules
+
+Agreed 2026-10-28. The how-to lives in `.claude/rules/api-*.md`; this section records the decisions.
+
+- **Auth stack:** `@nestjs/passport` + `@nestjs/jwt`. The official `@nestjs/authentication` / `@nestjs/authorization` (0.1.x) were considered and declined as pre-1.0 without GitHub OAuth2 out of the box; revisit at 1.0.
+- **Authorization:** global `JwtAuthGuard` (deny by default) + `@Public()`; record checks (membership, ownership) in services after loading.
+- **Tokens:** JWT payload `{ sub }` only; `tos_at` (15 min) and `tos_rt` (7 d, opaque, hashed, rotated, reuse revokes the family). Both `HttpOnly`, `SameSite=Lax`, `Path=/`.
+- **Data:** `prisma` / `@prisma/client` pinned to 7.10.1 with `PrismaPg`; one `PrismaService`; a repository per module; services never touch Prisma.
+- **Contract:** one `ApiError { statusCode, code, message, fields? }` in `@tos-chat/shared`; validation → 422 + `fields`; response DTOs with `excludeExtraneousValues` implementing shared `*View` types; socket acks `{ ok, data } | { ok: false, error }`.
+- **Structure:** modules `config`, `prisma`, `auth`, `users`, `rooms`, `messages`, `chat`, `health`; `@nestjs/event-emitter` for cross-module side effects (`room.deleted`); config validated by zod.
+- **Throttling:** 100/min default, 10/min auth, 30/min refresh, 5/min per user + room on join, 10 per 10 s per socket on `message:send`.
+- **Not adopted:** Fastify, caching, API versioning, microservices (except `/health`), DDD, tracing.
+
 ## How we build it
 
 - Infra and the Next.js frontend are scaffolded by Claude.

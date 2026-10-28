@@ -16,13 +16,14 @@ How the web reads from and writes to the Nest API. Nest is the only authority fo
    - `lib/api-client.ts` (browser): relative `/api/...` through the Next proxy; used only by `*-query-options.ts`.
 4. **NEVER** call `fetch` directly in feature code, and **NEVER** hardcode `localhost:4000` or any API host outside `lib/` and `next.config.ts`.
 5. **MUST** return domain types from queries and map API payloads inside the query. Components never see raw response envelopes.
-6. **MUST** map Nest responses in `lib/api-server.ts`, once:
+6. **MUST** map Nest responses in `lib/api-server.ts`, once. Error bodies are `ApiError` from `@tos-chat/shared` (contract: `api-contracts.md`):
    | Nest | Web |
    | --- | --- |
    | 401 | `redirect('/login')` |
    | 404 | `notFound()`, raised inside the query |
    | 403 | throw `ForbiddenError`, rendered by `error.tsx` |
-   | 400 / 422 | returned to the action as `{ ok: false, error, fields }`, never thrown |
+   | 422 | returned to the action as `{ ok: false, error, fields }`, never thrown |
+   | 400 / 409 / 429 | returned to the action as `{ ok: false, error }` (generic message) |
    | 5xx | throw to the nearest error boundary |
 7. **MUST** run every action in this order: validate with the zod schema from `<domain>-schema.ts` → call Nest → `refresh()` (or `updateTag()` when the read is cached) → return a discriminated union.
 8. **MUST** mirror Nest DTO limits in zod (room name length, message ≤ 2000 chars). zod gives fast feedback; Nest stays the final authority. **NEVER** skip the Nest call because zod passed.
