@@ -74,6 +74,34 @@ Membership is created over REST only; the socket only subscribes. Messages are p
 
 Global `ValidationPipe` (whitelist, transform) + class-validator DTOs · `@nestjs/config` with schema-validated env · `@nestjs/throttler` on login, private join, `message:send` · global exception filter with one error shape · helmet.
 
+## Frontend architecture
+
+Agreed 2026-10-28. The how-to lives in `.claude/rules/web-*.md`; this section records the decisions.
+
+- **Style:** `nextjs-app-architecture` (feature-sliced RSC) wins over `vercel-composition-patterns`, which wins over `vercel-react-best-practices`.
+- **Server-first:** `<domain>-queries.ts` (server-only) and `<domain>-actions.ts` (`'use server'`) call Nest through `lib/api-server.ts`, which forwards cookies. The web never touches Prisma or Postgres.
+- **Live-chat exception:** `features/message` seeds TanStack Query from the server, pages older history through `lib/api-client.ts`, applies `message:new` from Socket.IO, and sends via `message:send` with an ack. There is no second write path.
+- **Features:** `user`, `room` (membership folded in), `message`; the socket client lives in `lib/socket/`. No `features/chat/`.
+- **Session:** `src/proxy.ts` redirects to `/login` when there is no refresh cookie (UX only) and refreshes ahead of access-token expiry, writing rotated cookies to both the request and the response. Nest is the only authority.
+- **Caching:** dynamic by default under Suspense, with `refresh()` after writes. `'use cache'` only for non-personal data whose every write goes through a Next action.
+- **Errors:** `lib/api-server.ts` maps 401 → `/login`, 404 → `notFound()`, 403 → `ForbiddenError`, 400/422 → action result, 5xx → error boundary.
+- **Forms:** actions validate with zod (mirroring Nest DTOs), return `{ ok: false, error, fields, values }`, and keep user input.
+- **Login:** GitHub and Google via plain `<a href="/api/auth/...">`; Telegram widget as a client leaf.
+- **shadcn:** `components/ui/**` is vendor code, exempt from the composition rules.
+
+## Backend rules
+
+Agreed 2026-10-28. The how-to lives in `.claude/rules/api-*.md`; this section records the decisions.
+
+- **Auth stack:** `@nestjs/passport` + `@nestjs/jwt`. The official `@nestjs/authentication` / `@nestjs/authorization` (0.1.x) were considered and declined as pre-1.0 without GitHub OAuth2 out of the box; revisit at 1.0.
+- **Authorization:** global `JwtAuthGuard` (deny by default) + `@Public()`; record checks (membership, ownership) in services after loading.
+- **Tokens:** JWT payload `{ sub }` only; `tos_at` (15 min) and `tos_rt` (7 d, opaque, hashed, rotated, reuse revokes the family). Both `HttpOnly`, `SameSite=Lax`, `Path=/`.
+- **Data:** `prisma` / `@prisma/client` pinned to 7.10.1 with `PrismaPg`; one `PrismaService`; a repository per module; services never touch Prisma.
+- **Contract:** one `ApiError { statusCode, code, message, fields? }` in `@tos-chat/shared`; validation → 422 + `fields`; response DTOs with `excludeExtraneousValues` implementing shared `*View` types; socket acks `{ ok, data } | { ok: false, error }`.
+- **Structure:** modules `config`, `prisma`, `auth`, `users`, `rooms`, `messages`, `chat`, `health`; `@nestjs/event-emitter` for cross-module side effects (`room.deleted`); config validated by zod.
+- **Throttling:** 100/min default, 10/min auth, 30/min refresh, 5/min per user + room on join, 10 per 10 s per socket on `message:send`.
+- **Not adopted:** Fastify, caching, API versioning, microservices (except `/health`), DDD, tracing.
+
 ## How we build it
 
 - Infra and the Next.js frontend are scaffolded by Claude.

@@ -22,5 +22,8 @@ Cut from v1 to keep it small, but **must-have** later. Each item is meant to bec
 
 ## Architecture and ops
 
+- [ ] **Web e2e loading-sequence tests**: Playwright `instant()` tests asserting what renders before uncached work resolves (`nextjs-app-architecture` → `references/testing.md`)
+- [ ] **ESLint guards for web rules**: enforce the rules that keep getting broken (e.g. no `*-queries` imports in `src/app/`, no barrels)
+- [ ] **Official Nest auth packages**: revisit `@nestjs/authentication` / `@nestjs/authorization` at 1.0 as a migration lesson (same behavior, e2e tests prove it)
 - [ ] **Modular-monolith migration**: DDD layers + dependency-cruiser boundaries (`nestjs-modular-monolith` skill)
 - [ ] **Deployment**: hosting for api, web, and Postgres; production cookies and domains; named Cloudflare tunnel or real domain for Telegram
