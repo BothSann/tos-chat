@@ -18,10 +18,19 @@ The owner is learning NestJS by typing it. This rule limits what Claude writes i
 7. **MUST** follow `docs/PLAN.md` → Lesson order. Picking a different next lesson is the owner's call (`nestjs-learn-pick-task`).
 8. **MAY** add packages needed by a lesson only as a step the owner runs (`pnpm --filter api add ...`), with exact pins where `api-data.md` #1 requires them.
 
+## Generating files
+
+9. **MUST** create Nest building blocks with `pnpm exec nest g <schematic> <name> --format` in lesson GUIDEs: `module`, `controller`, `service`, `gateway`, `guard`, `filter`, `interceptor`, `pipe`, `decorator`. The CLI writes the ESM `.js` imports and the parent module's `imports` wiring.
+10. **MUST** have the owner type by hand the files no schematic fits: `src/config/env.ts`, `configure-app.ts`, DTOs, response DTOs, repositories, and view mappers.
+11. **NEVER** use `nest g resource`. Its entities, `@nestjs/mapped-types` DTOs, and CRUD stubs clash with Prisma and `api-data.md`. Run `module`, `controller`, and `service` separately.
+12. **MUST** leave spec defaults to `nest-cli.json` `generateOptions.spec`: no spec for controllers, modules, gateways, or guards. A generated service spec keeps its file, and the tests step replaces its `should be defined` body with real tests.
+13. **MUST** write a CLI step as: the command, the files the CLI wrote, then only the lines the owner adds.
+
 ## Check
 
 - [ ] No feature files in `apps/api/src` changed by Claude without an explicit request
 - [ ] Reviews cite rule ids and leave the fix to the owner
+- [ ] GUIDE steps generate Nest building blocks with `nest g ... --format`, never `resource`
 
 ## Source
 
