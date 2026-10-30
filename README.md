@@ -15,20 +15,24 @@ packages/shared  Types shared by api and web
 
 ## Run
 
-Requires Node 24, pnpm 11, Docker.
+Requires Node 24, pnpm 11, Docker, and `just` (`cargo install just`).
 
 ```sh
 pnpm install
-pnpm db:up        # Postgres dev (5432) + test (5433)
-pnpm dev          # api + web in parallel
+just up           # Postgres dev (5432) + test (5433)
+just dev          # api + web in parallel
 ```
+
+Run `just` to list every recipe.
 
 Open http://localhost:3000. The api answers directly at http://localhost:4000 and through the proxy at http://localhost:3000/api.
 
 ## Checks
 
 ```sh
-pnpm test
-pnpm lint
-pnpm build
+just test         # api unit tests
+just e2e          # api e2e tests
+just lint
+just typecheck
+just build
 ```

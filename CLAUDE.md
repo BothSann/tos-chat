@@ -13,11 +13,15 @@ packages/shared  Types shared by api and web (DTO shapes, socket events), no run
 
 ## Commands
 
+Requires `just` (`cargo install just`). `just` alone lists every recipe; each wraps a pnpm script, which CI calls directly.
+
 ```sh
-pnpm db:up                  # Postgres dev :5432 + test :5433
-pnpm dev                    # api + web
-pnpm test | pnpm lint | pnpm build
-pnpm --filter api test:e2e
+just up                     # Postgres dev :5432 + test :5433
+just dev                    # api + web
+just test | just e2e        # api unit | api e2e
+just lint | just typecheck | just build
+just migrate <name>         # prisma migrate dev --name <name>
+just studio | just generate | just format | just reset
 ```
 
 ## Where the rules live
