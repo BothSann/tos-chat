@@ -25,7 +25,7 @@ Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better A
 
 ## Auth
 
-- **NestJS owns auth** via [Better Auth](https://better-auth.com) 1.7.x, mounted in Nest with `@thallesp/nestjs-better-auth`, Prisma adapter. Browser path: `/api/auth/*` (the web proxy strips `/api`, so Nest serves `/auth/*`).
+- **NestJS owns auth** via [Better Auth](https://better-auth.com) 1.7.x, mounted in Nest with `@thallesp/nestjs-better-auth`, Prisma adapter. Browser path: `/api/auth/*`, kept unstripped by its own web rewrite because Better Auth answers only on its `basePath` (`/api/auth`). Every other `/api/*` path is stripped.
 - **Sign-in methods:** GitHub, Google (built-in social providers), email and password, and Telegram through the official `genericOAuth` plugin against Telegram's OIDC (`https://oauth.telegram.org/.well-known/openid-configuration`, PKCE). No third-party Telegram plugin.
 - **Email and password:** `requireEmailVerification: true`, 12–128 characters, default scrypt hashing, `revokeSessionsOnPasswordReset: true`. Emails go through our `Mailer` (`ConsoleMailer` in dev and tests, `ResendMailer` in prod).
 - **Sessions:** database sessions in an opaque `HttpOnly` cookie, `expiresIn` 7 days, `updateAge` 1 day, `cookieCache` 5 minutes (a revoked session can live up to 5 minutes). No JWTs, no refresh endpoint.
@@ -53,7 +53,7 @@ Message(id cuid, roomId, authorId, content <= 2000 chars, createdAt,
 
 ## REST (behind `/api` from the browser)
 
-- `/auth/*`: Better Auth's endpoints (sign-in, callbacks, sign-up, verify, reset, sign-out, get-session, link). Not hand-written.
+- `/api/auth/*`: Better Auth's endpoints (sign-in, callbacks, sign-up, verify, reset, sign-out, get-session, link). Not hand-written.
 - `GET /me`
 - `GET /rooms`, `POST /rooms`, `PATCH /rooms/:id`, `DELETE /rooms/:id`
 - `POST /rooms/:id/join`, `POST /rooms/:id/leave`
@@ -75,7 +75,7 @@ Membership is created over REST only; the socket only subscribes. Messages are p
 
 ## Hardening (every lesson)
 
-Global `ValidationPipe` (whitelist, transform) + class-validator DTOs · `@nestjs/config` with schema-validated env · Better Auth's limiter on `/auth/*`, `@nestjs/throttler` on private join and `message:send` · global exception filter with one error shape · helmet.
+Global `ValidationPipe` (whitelist, transform) + class-validator DTOs · `@nestjs/config` with schema-validated env · Better Auth's limiter on `/api/auth/*`, `@nestjs/throttler` on private join and `message:send` · global exception filter with one error shape · helmet.
 
 ## Frontend architecture
 
@@ -103,7 +103,7 @@ Agreed 2026-10-28. The how-to lives in `.claude/rules/api-*.md`; this section re
 - **Data:** `prisma` / `@prisma/client` pinned to 7.10.1 with `PrismaPg`; one `PrismaService`; a repository per module; services never touch Prisma.
 - **Contract:** one `ApiError { statusCode, code, message, fields? }` in `@tos-chat/shared`; validation → 422 + `fields`; response DTOs with `excludeExtraneousValues` implementing shared `*View` types; socket acks `{ ok, data } | { ok: false, error }`.
 - **Structure:** modules `config`, `prisma`, `auth`, `mail`, `users`, `rooms`, `messages`, `chat`, `health`; `@nestjs/event-emitter` for cross-module side effects (`room.deleted`); config validated by zod.
-- **Throttling:** Better Auth's limiter (database storage) on `/auth/*`; `@nestjs/throttler` 100/min default, 5/min per user + room on join, 10 per 10 s per socket on `message:send`.
+- **Throttling:** Better Auth's limiter (database storage) on `/api/auth/*` (100/min, 10/min on sign-in); `@nestjs/throttler` 100/min default, 5/min per user + room on join, 10 per 10 s per socket on `message:send`.
 - **Not adopted:** Fastify, caching, API versioning, microservices (except `/health`), DDD, tracing.
 
 ## How we build it
