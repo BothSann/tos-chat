@@ -18,7 +18,7 @@ Vitest (the Nest 12 default) for unit and e2e tests. Every lesson ships at least
 7. **MUST** mock OAuth providers at the HTTP boundary (stub the provider's token and user-info calls), and create signed-in test users through Better Auth's own API (email sign-up + the fake mailer's verification link). **NEVER** call GitHub, Google, or Telegram from tests.
 8. **MUST** cover, for each feature: the happy path, validation (422 + `fields`), unauthenticated (401), and wrong user (403).
 9. **MUST** isolate e2e tests by creating their own users and rooms. **NEVER** depend on order or on data from another test.
-10. **MUST** keep `pnpm --filter api test` and `pnpm --filter api test:e2e` green before a lesson is marked done.
+10. **MUST** keep `just test` and `just e2e` green before a lesson is marked done.
 
 ## Check
 
