@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/logo.png" alt="tos-chat logo" width="200">
+</p>
+
 # tos-chat
 
 Real-time chat app (Next.js + NestJS) built to learn NestJS lesson by lesson.
