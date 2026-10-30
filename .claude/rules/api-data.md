@@ -15,7 +15,7 @@ Prisma, repositories, transactions, and migrations. Data model: `docs/PLAN.md` �
 4. **MUST** return plain domain types from repositories. **NEVER** leak Prisma query builders or `Prisma.*` input types into services.
 5. **MUST** run every query in a transaction through `tx` (`prisma.$transaction(async (tx) => ...)`). **NEVER** use the outer client inside the callback. Repositories accept an optional `tx` when a service composes a transaction.
 6. **MUST** change the schema only with `prisma migrate dev --name <change>` and commit the migration. **NEVER** use `prisma db push` and **NEVER** edit an applied migration.
-7. **MUST** keep the indexes in PLAN.md: `unique(provider, providerAccountId)`, `Room.name unique`, `Membership PK(userId, roomId)`, `Message index(roomId, createdAt, id)`.
+7. **MUST** keep the indexes in PLAN.md: `Account unique(providerId, accountId)`, `Room.name unique`, `Membership PK(userId, roomId)`, `Message index(roomId, createdAt, id)`.
 8. **MUST** paginate messages by cursor `(createdAt, id)`, newest first, `limit` ≤ 50. **NEVER** use offset pagination.
 9. **NEVER** cause N+1 queries. Load relations with `include`/`select` or a single `in` query.
 10. **MUST** cascade deletes in the schema (`Room` → `Membership`, `Message`), not with manual loops.

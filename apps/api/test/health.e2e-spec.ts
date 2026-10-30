@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
-import { configureApp } from '../src/configure-app.js';
+import { appOptions, configureApp } from '../src/configure-app.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 describe('GET /health (e2e)', () => {
@@ -14,7 +14,7 @@ describe('GET /health (e2e)', () => {
       const moduleRef = await Test.createTestingModule({
         imports: [AppModule],
       }).compile();
-      app = configureApp(moduleRef.createNestApplication());
+      app = configureApp(moduleRef.createNestApplication(appOptions));
       await app.init();
     });
 
@@ -36,7 +36,7 @@ describe('GET /health (e2e)', () => {
     it('reaches a database that has the User table from the first migration', async () => {
       const prisma = app.get(PrismaService);
       const user = await prisma.user.create({
-        data: { displayName: 'e2e health' },
+        data: { displayName: 'e2e health', email: 'health@e2e.test' },
       });
       expect(user).toMatchObject({
         displayName: 'e2e health',
@@ -58,7 +58,7 @@ describe('GET /health (e2e)', () => {
         .overrideProvider(PrismaService)
         .useValue(unreachable)
         .compile();
-      app = configureApp(moduleRef.createNestApplication());
+      app = configureApp(moduleRef.createNestApplication(appOptions));
       await app.init();
     });
 

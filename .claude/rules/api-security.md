@@ -12,7 +12,7 @@ Authentication, authorization, and abuse limits. Nest is the only authority; the
 ### Authentication
 
 1. **MUST** authenticate with Better Auth, mounted through `@thallesp/nestjs-better-auth` with the Prisma adapter. Providers: GitHub and Google (`socialProviders`), `emailAndPassword`, and Telegram through the official `genericOAuth` plugin with Telegram's OIDC discovery URL and `pkce: true`. **NEVER** add a third-party auth plugin without a decision in `docs/PLAN.md`.
-2. **MUST** keep the library's global `AuthGuard` (**deny by default**). Mark open routes with `@AllowAnonymous()`: `GET /health` and anything that must work signed out. Better Auth's own `/auth/*` routes are handled by the library.
+2. **MUST** keep the library's global `AuthGuard` (**deny by default**). Mark open routes with `@AllowAnonymous()`: `GET /health` and anything that must work signed out. Better Auth's own `/api/auth/*` routes are handled by the library.
 3. **MUST** configure email and password with `requireEmailVerification: true`, `minPasswordLength: 12`, `maxPasswordLength: 128`, and `revokeSessionsOnPasswordReset: true`. Verification is required because account linking (rule 5) trusts verified emails.
 4. **MUST** use database sessions: `expiresIn` 7 days, `updateAge` 1 day, `cookieCache` 5 minutes. **NEVER** issue JWTs or write a refresh flow.
 5. **MUST** enable `accountLinking` with `trustedProviders: ["github", "google"]` only. Telegram users get `<sub>@telegram.invalid` with `emailVerified: false` and link only from inside a session.
@@ -29,10 +29,11 @@ Authentication, authorization, and abuse limits. Nest is the only authority; the
 ### Abuse limits and hardening
 
 12. **MUST** hash room passwords with argon2. **NEVER** return or log them.
-13. **MUST** rate-limit `/auth/*` with Better Auth's limiter (`rateLimit.storage: "database"`), and everything else with `@nestjs/throttler`:
+13. **MUST** rate-limit `/api/auth/*` with Better Auth's limiter (`rateLimit.storage: "database"`), and everything else with `@nestjs/throttler`:
     | Target | Limit | By |
     | --- | --- | --- |
-    | `/auth/*` default | 10/min per IP | Better Auth |
+    | `/api/auth/*` default | 100/min per IP | Better Auth |
+    | `/api/auth/sign-in/*` | 10/min per IP | Better Auth `customRules` |
     | Global default | 100/min per IP | throttler |
     | `POST /rooms/:id/join` | 5/min per user + room | throttler |
     | `message:send` | 10 per 10 s per socket | throttler |
