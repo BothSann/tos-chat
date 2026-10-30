@@ -27,9 +27,7 @@ What the API promises the web. `lib/api-server.ts` and the socket hooks depend o
 4. **MUST** configure the global `ValidationPipe` with `whitelist`, `forbidNonWhitelisted`, `transform`, `errorHttpStatusCode: 422`, and an `exceptionFactory` that builds `fields` (property → messages).
 5. **MUST** respond with response DTOs (`<name>.response.ts`) whose `@Expose()` fields are the full allowlist, converted with `excludeExtraneousValues: true`. **NEVER** return a Prisma row or entity. `Room.passwordHash` must never leave the API.
 6. **MUST** make each response DTO `implements` its `*View` type from `@tos-chat/shared` (`UserView`, `RoomView`, `MessageView`).
-7. **MUST** set the auth cookies exactly as follows. All are `HttpOnly`, `SameSite=Lax`, `Path=/`, with no `Domain`, and `Secure` only when `NODE_ENV=production`:
-   - `tos_at`: access JWT, 15 min
-   - `tos_rt`: opaque refresh token (stored hashed), 7 days. `Path=/` because `proxy.ts` checks it on every page request.
+7. **MUST** leave auth cookies to Better Auth: `HttpOnly`, `SameSite=Lax`, `Path=/`, no `Domain`, and `Secure` only when `NODE_ENV=production` (`advanced.useSecureCookies`). **NEVER** set an auth cookie by hand.
 8. **MUST** answer every client→server socket event with an ack `{ ok: true; data } | { ok: false; error: ApiError }`, typed in `@tos-chat/shared`, with a WS exception filter that converts `WsException` and HTTP exceptions.
 9. **MUST** reject unauthenticated handshakes with `connect_error` whose `data.code` is `UNAUTHORIZED`.
 10. **MUST** keep socket event names and payloads identical to `docs/PLAN.md` → Socket contract.

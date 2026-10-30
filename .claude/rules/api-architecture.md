@@ -30,7 +30,7 @@ How `apps/api` is structured and which `nestjs-best-practices` rules apply. Proj
 | `micro-*` (except `micro-use-health-checks` → `GET /health`) | Monolith, no brokers |
 | `ddd-*` | Plain feature modules; DDD migration is on the backlog |
 | `devops-use-tracing` | Out of scope for v1 |
-| `@nestjs/authentication`, `@nestjs/authorization` (from `security-auth-jwt`, `security-authorize-records`) | Pre-1.0 (`0.1.x`) and no GitHub OAuth2 out of the box; hand-rolled Passport instead (`api-security.md`). Revisit at 1.0 |
+| `@nestjs/passport`, `@nestjs/jwt`, `@nestjs/authentication` (from `security-auth-jwt`) | Better Auth owns authentication and sessions (`api-security.md`, PLAN decision 2026-10-30) |
 
 Every other rule in the skill applies. Read only the ones relevant to the task.
 
