@@ -29,7 +29,7 @@ How the web reads from and writes to the Nest API. Nest is the only authority fo
 8. **MUST** mirror Nest DTO limits in zod (room name length, message ≤ 2000 chars). zod gives fast feedback; Nest stays the final authority. **NEVER** skip the Nest call because zod passed.
 9. **MUST** return the submitted values from a failed action so the form keeps what the user typed (`defaultValue={state.values?.name}`).
 10. **MUST** start OAuth with plain links: `<a href="/api/auth/github">`, `<a href="/api/auth/google">`. **NEVER** start OAuth from a server action, `fetch`, or `router.push`.
-11. **MUST** make the Telegram Login Widget a `'use client'` leaf in `features/user/components/` that posts the widget payload to `/api/auth/telegram`.
+11. **MUST** keep `createAuthClient` (`better-auth/react`) in `features/user/auth-client.ts` and call it only from `'use client'` leaves in `features/user/components/` (social sign-in buttons including Telegram, email and password forms, sign-out).
 12. **MUST** expose `getCurrentUser()` from `features/user/user-queries.ts`, wrapped in React `cache()`. It is the only sanctioned `cache()` in the app.
 13. **NEVER** trust Next-side checks for authorization. A hidden button is UX; Nest returning 401/403 is the rule.
 

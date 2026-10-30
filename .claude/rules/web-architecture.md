@@ -16,7 +16,7 @@ Where code lives in `apps/web` and which rule wins when guidance conflicts.
    - `components/ui/` — shadcn primitives (vendor zone); `components/*.tsx` — app-shell singletons used once (`site-header.tsx`)
    - `hooks/`, `types/` — cross-feature only, after real reuse by 2+ features
    - `lib/` — non-domain helpers and subsystems: `api-server.ts`, `api-client.ts`, `socket/`, `utils.ts`
-   - `proxy.ts` — auth gating and token refresh (see `web-caching.md`)
+   - `proxy.ts` — auth gating only (see `web-caching.md`)
 3. **MUST** keep exactly three features in v1: `user` (session, current user, login, logout), `room` (list, create, join, password, settings, leave, membership), `message` (history, live updates, composer, socket hooks).
 4. **NEVER** create a feature folder for a sub-concept. Membership lives in `room`; a reaction would live in `message`. No `features/chat/`, `features/auth/`, or `features/membership/`.
 5. **MUST** use this feature layout, creating only the files that are needed:

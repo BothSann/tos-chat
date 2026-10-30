@@ -20,10 +20,8 @@ Cache Components is on (`cacheComponents: true`). Almost all data is personal or
 6. **MUST** define a server tag or TanStack key that is shared by a read and its invalidation **once**, in a pure `<domain>-cache.ts` that imports neither Next nor TanStack.
 7. **NEVER** wrap a query in React `cache()` "just in case". `getCurrentUser()` is the only exception (`web-data-layer.md` #12).
 8. **MUST** implement `src/proxy.ts` (Next 16's renamed middleware) as follows:
-   - No refresh cookie → redirect protected routes to `/login`. This is UX only; Nest stays the authority.
-   - Access cookie missing or expiring within ~60 s → call Nest `POST /auth/refresh` with the refresh cookie.
-   - Write the rotated cookies to **both** the forwarded request headers (so this render's server fetches use the new token) and the response (so the browser stores them).
-   - Decode `exp` only. **NEVER** verify the JWT signature or put auth decisions in Next.
+   - No Better Auth session cookie (`getSessionCookie()` from `better-auth/cookies`) → redirect protected routes to `/login`. This is UX only; Nest stays the authority.
+   - **NEVER** refresh, decode, or validate the session in `proxy.ts`, and never put auth decisions in Next.
 9. **NEVER** set cookies from a Server Component. Only `proxy.ts`, route handlers, and server actions may.
 10. **NEVER** use polling to keep caches in sync. Live data arrives over Socket.IO (`web-realtime-chat.md`).
 
@@ -43,7 +41,7 @@ export async function getRooms() { 'use cache'; cacheLife('hours'); /* per-user 
 
 - [ ] No `'use cache'` without both rule-2 conditions and a note in PLAN.md
 - [ ] Tags and keys come from `<domain>-cache.ts`, never string literals
-- [ ] `proxy.ts` refresh writes cookies to request **and** response
+- [ ] `proxy.ts` only checks that the session cookie exists
 
 ## Source
 
