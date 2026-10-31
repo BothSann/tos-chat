@@ -7,6 +7,9 @@ export default defineConfig({
     root: './',
     include: ['**/*.e2e-spec.ts'],
     globalSetup: ['./test/global-setup.ts'],
+    // Every e2e file shares one test database and cleans tables in its hooks,
+    // so files run one at a time to keep one file from wiping another's rows.
+    fileParallelism: false,
     // Fake auth settings: real env vars win over .env files, so e2e never uses
     // your real GitHub secrets, and CI needs no extra variables.
     env: {
