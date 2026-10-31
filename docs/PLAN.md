@@ -20,7 +20,7 @@ Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better A
 - Web: `http://localhost:3000`, api: `http://localhost:4000`
 - Next `rewrites` proxy `/api/*` → api and `/socket.io/*` → api, so the browser sees **one origin** (cookies `SameSite=Lax`, no CORS needed in dev).
 - Postgres: dev on `127.0.0.1:5432` (`tos_chat`), test on `127.0.0.1:5433` (`tos_chat_test`, tmpfs). Use `127.0.0.1`, not `localhost` (IPv6 `::1` does not reach the test port on this machine).
-- Telegram OIDC needs a public HTTPS callback registered with BotFather → ngrok's free static domain in dev (only from Lesson 5). No domain is bought until deployment.
+- Telegram OIDC needs a public HTTPS callback registered with BotFather → ngrok's free static domain in dev (only from Lesson 10). No domain is bought until deployment.
 - Mail: `MAIL_DRIVER=console` in dev and tests logs verification and reset links to the Nest console.
 
 ## Auth
@@ -113,15 +113,18 @@ Agreed 2026-10-28. The how-to lives in `.claude/rules/api-*.md`; this section re
 
 ## Lesson order
 
+Reordered 2026-10-31, after Lesson 2: NestJS concepts first. The remaining sign-in providers are mostly Better Auth configuration, so they move after the chat core; email and password stays ahead of them for the `MailModule` DI practice. Rooms CRUD is split in two, and private rooms move to join/leave.
+
 1. Nest skeleton, `@nestjs/config`, Prisma module, first migration
 2. Better Auth in Nest: generated schema from Lesson 1's `User`, GitHub sign-in, global `AuthGuard`, `@Session()`, `GET /me`
-3. Google + account linking
-4. Email and password: verification, reset, `MailModule` with the console mailer
-5. Telegram via `genericOAuth` OIDC (starts with a spike: one real login through ngrok)
-6. Rooms CRUD + ownership checks
-7. Join/leave, private-room passwords, throttling
-8. Messages + cursor pagination
-9. Socket.IO Gateway: handshake auth, membership guard, events
-10. Hardening sweep + e2e coverage
+3. Rooms A: `POST /rooms` + `GET /rooms` (public rooms only), owner `Membership`, global `ValidationPipe`, `ApiError` + exception filter, response DTOs
+4. Rooms B: `PATCH` + `DELETE /rooms/:id`, ownership checks (403/404), cascades
+5. Join/leave, private rooms (`type`, `passwordHash` migration), throttling
+6. Messages + cursor pagination
+7. Socket.IO Gateway: handshake auth, membership guard, events
+8. Email and password: verification, reset, `MailModule` with the console mailer
+9. Google + account linking
+10. Telegram via `genericOAuth` OIDC (starts with a spike: one real login through ngrok)
+11. Hardening sweep + e2e coverage
 
 Post-v1 work lives in [BACKLOG.md](./BACKLOG.md).
