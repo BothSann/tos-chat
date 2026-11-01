@@ -5,3 +5,29 @@ export interface UserView {
   displayName: string;
   avatarUrl: string | null;
 }
+
+export type ApiErrorCode =
+  | "BAD_REQUEST"
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "NOT_FOUND"
+  | "CONFLICT"
+  | "VALIDATION_FAILED"
+  | "TOO_MANY_REQUESTS"
+  | "INTERNAL";
+
+export interface ApiError {
+  statusCode: number;
+  code: ApiErrorCode;
+  message: string;
+  fields?: Record<string, string[]>;
+}
+
+export interface RoomView {
+  id: string;
+  name: string;
+  description: string | null;
+  ownerId: string;
+  createdAt: string;
+  isMember: boolean;
+}

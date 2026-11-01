@@ -4,74 +4,105 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+    provider = "prisma-client"
+    output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
+    provider = "postgresql"
 }
 
 model User {
-  id            String    @id @default(cuid())
-  displayName   String
-  avatarUrl     String?
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+    id            String       @id @default(cuid())
+    displayName   String
+    avatarUrl     String?
+    email         String       @unique
+    emailVerified Boolean      @default(false)
+    createdAt     DateTime     @default(now())
+    updatedAt     DateTime     @updatedAt
+    sessions      Session[]
+    accounts      Account[]
+    rooms         Room[]
+    memberships   Membership[]
 }
 
 model Session {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  expiresAt DateTime
-  ipAddress String?
-  userAgent String?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    id        String   @id @default(cuid())
+    token     String   @unique
+    expiresAt DateTime
+    ipAddress String?
+    userAgent String?
+    userId    String
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 
-  @@index([userId])
+    @@index([userId])
 }
 
 model Account {
-  id                    String   @id @default(cuid())
-  accountId             String
-  providerId            String
-  userId                String
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  accessToken           String?
-  refreshToken          String?
-  idToken               String?
-  accessTokenExpiresAt  DateTime?
-  refreshTokenExpiresAt DateTime?
-  scope                 String?
-  password              String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+    id                    String    @id @default(cuid())
+    accountId             String
+    providerId            String
+    userId                String
+    user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    accessToken           String?
+    refreshToken          String?
+    idToken               String?
+    accessTokenExpiresAt  DateTime?
+    refreshTokenExpiresAt DateTime?
+    scope                 String?
+    password              String?
+    createdAt             DateTime  @default(now())
+    updatedAt             DateTime  @updatedAt
 
-  @@unique([providerId, accountId])
-  @@index([userId])
+    @@unique([providerId, accountId])
+    @@index([userId])
 }
 
 model Verification {
-  id         String   @id @default(cuid())
-  identifier String
-  value      String
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+    id         String   @id @default(cuid())
+    identifier String
+    value      String
+    expiresAt  DateTime
+    createdAt  DateTime @default(now())
+    updatedAt  DateTime @updatedAt
 
-  @@index([identifier])
+    @@index([identifier])
 }
 
 model RateLimit {
-  id          String @id @default(cuid())
-  key         String @unique
-  count       Int
-  lastRequest BigInt
+    id          String @id @default(cuid())
+    key         String @unique
+    count       Int
+    lastRequest BigInt
+}
+
+model Room {
+    id          String       @id @default(cuid())
+    name        String       @unique
+    description String?
+    ownerId     String
+    owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    createdAt   DateTime     @default(now())
+    memberships Membership[]
+
+    @@index([ownerId])
+}
+
+enum MembershipRole {
+    OWNER
+    MEMBER
+}
+
+model Membership {
+    userId   String
+    user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+    roomId   String
+    room     Room           @relation(fields: [roomId], references: [id], onDelete: Cascade)
+    role     MembershipRole
+    joinedAt DateTime       @default(now())
+
+    @@id([userId, roomId])
+    @@index([roomId])
 }
