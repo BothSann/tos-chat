@@ -1,0 +1,25 @@
+import { Body, Controller, Post, Get } from '@nestjs/common';
+import { RoomsService } from './rooms.service.js';
+import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
+import { CreateRoomDto } from './create-room.dto.js';
+import { RoomResponse } from './room.response.js';
+
+@Controller('rooms')
+export class RoomsController {
+  constructor(private readonly roomsService: RoomsService) {}
+
+  @Post()
+  async create(
+    @Session() session: UserSession,
+    @Body() dto: CreateRoomDto,
+  ): Promise<RoomResponse> {
+    const room = await this.roomsService.create(session.user.id, dto);
+    return RoomResponse.from(room);
+  }
+
+  @Get()
+  async list(@Session() session: UserSession): Promise<RoomResponse[]> {
+    const rooms = await this.roomsService.list(session.user.id);
+    return rooms.map((room) => RoomResponse.from(room));
+  }
+}
