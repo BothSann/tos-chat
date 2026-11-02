@@ -42,6 +42,12 @@ describe('CreateRoomDto', () => {
     expect(dto.description).toBeUndefined();
   });
 
+  it('rejects a description that is not a string', () => {
+    expect(check({ name: 'general', description: 42 }).failed).toEqual([
+      'description',
+    ]);
+  });
+
   it('rejects a description over 200 characters', () => {
     expect(
       check({ name: 'general', description: 'x'.repeat(201) }).failed,
