@@ -136,7 +136,9 @@ describe('ApiExceptionFilter', () => {
   it('hides the details of anything unexpected behind a logged 500', () => {
     const logged = muteErrorLog();
 
-    const { status, body } = handle(new Error('relation "Room" does not exist'));
+    const { status, body } = handle(
+      new Error('relation "Room" does not exist'),
+    );
 
     expect(status).toBe(500);
     expect(body).toEqual({
@@ -147,13 +149,40 @@ describe('ApiExceptionFilter', () => {
     expect(logged).toHaveBeenCalledOnce();
   });
 
-  it('does not treat other Prisma errors as conflicts', () => {
-    muteErrorLog();
-    const notFound = new Prisma.PrismaClientKnownRequestError('No record', {
+  it('maps a missing record (P2025) to 404 with the model name', () => {
+    const missing = new Prisma.PrismaClientKnownRequestError('No record', {
+      code: 'P2025',
+      clientVersion: '7.10.1',
+      meta: { modelName: 'Room', operation: 'a delete' },
+    });
+
+    expect(handle(missing)).toEqual({
+      status: 404,
+      body: { statusCode: 404, code: 'NOT_FOUND', message: 'Room not found' },
+    });
+  });
+
+  it('says "Not found" when P2025 has no model name', () => {
+    const missing = new Prisma.PrismaClientKnownRequestError('No record', {
       code: 'P2025',
       clientVersion: '7.10.1',
     });
 
-    expect(handle(notFound).status).toBe(500);
+    expect(handle(missing).body).toEqual({
+      statusCode: 404,
+      code: 'NOT_FOUND',
+      message: 'Not found',
+    });
+  });
+
+  it('answers 500 for any other Prisma error', () => {
+    const logged = muteErrorLog();
+    const other = new Prisma.PrismaClientKnownRequestError('Timed out', {
+      code: 'P1008',
+      clientVersion: '7.10.1',
+    });
+
+    expect(handle(other).status).toBe(500);
+    expect(logged).toHaveBeenCalledOnce();
   });
 });

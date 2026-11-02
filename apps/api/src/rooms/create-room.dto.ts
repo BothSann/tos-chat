@@ -1,19 +1,13 @@
-import { Transform } from 'class-transformer';
 import { IsOptional, IsString, Length, MaxLength } from 'class-validator';
-
-const trim = ({ value }: { value: unknown }): unknown =>
-  typeof value === 'string' ? value.trim() : value;
+import { Trim } from '../common/trim.decorator.js';
 
 export class CreateRoomDto {
-  @Transform(trim)
+  @Trim()
   @IsString()
   @Length(3, 40)
   name: string;
 
-  @Transform(({ value }) => {
-    const trimmed = trim({ value });
-    return trimmed === '' ? undefined : trimmed;
-  })
+  @Trim({ blankAs: undefined })
   @IsOptional()
   @IsString()
   @MaxLength(200)
