@@ -19,6 +19,11 @@ export interface NewRoom {
   ownerId: string;
 }
 
+export interface RoomChanges {
+  name?: string;
+  description?: string | null;
+}
+
 const roomColumns = {
   id: true,
   name: true,
@@ -73,5 +78,26 @@ export class RoomsRepository {
       ...room,
       isMember: memberships.length > 0,
     }));
+  }
+
+  async findById(id: string): Promise<Room | null> {
+    return this.prisma.room.findUnique({
+      where: { id },
+      select: roomColumns,
+    });
+  }
+
+  async update(id: string, changes: RoomChanges): Promise<Room> {
+    return this.prisma.room.update({
+      where: { id },
+      data: changes,
+      select: roomColumns,
+    });
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.room.delete({
+      where: { id },
+    });
   }
 }

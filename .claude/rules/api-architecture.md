@@ -9,7 +9,7 @@ How `apps/api` is structured and which `nestjs-best-practices` rules apply. Proj
 
 ## Rules
 
-1. **MUST** use these feature modules under `src/`, and no others without a decision in `docs/PLAN.md`: `config`, `prisma`, `auth`, `users`, `rooms` (membership lives here), `messages`, `chat` (Socket.IO gateway), `health`.
+1. **MUST** use these feature modules under `src/`, and no others without a decision in `docs/PLAN.md`: `config`, `prisma`, `auth`, `users`, `rooms` (membership lives here), `messages`, `chat` (Socket.IO gateway), `health`. `src/common/` holds pipes and decorators shared by modules (`ParseCuidPipe`, `@Trim()`); it is not a module.
 2. **MUST** layer each module as controller or gateway → service → repository. Controllers and gateways parse input, call one service method, and return a response DTO. Business rules live in services.
 3. **NEVER** put business logic or data access in a controller or gateway. `ChatGateway` authenticates the socket, checks membership via `RoomsService`, and delegates persistence to `MessagesService`.
 4. **MUST** import only another module's **exported services**. **NEVER** import its repository, controller, or internal files. No circular module imports.
