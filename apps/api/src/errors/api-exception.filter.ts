@@ -98,15 +98,24 @@ function toApiError(exception: unknown): ApiError {
   if (exception instanceof HttpException) {
     return fromHttpException(exception);
   }
-  if (
-    exception instanceof Prisma.PrismaClientKnownRequestError &&
-    exception.code === 'P2002'
-  ) {
-    return {
-      statusCode: HttpStatus.CONFLICT,
-      code: 'CONFLICT',
-      message: conflictMessage(exception.meta),
-    };
+  if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+    // P2002: a unique index refused the write (a taken room name).
+    if (exception.code === 'P2002') {
+      return {
+        statusCode: HttpStatus.CONFLICT,
+        code: 'CONFLICT',
+        message: conflictMessage(exception.meta),
+      };
+    }
+    // P2025: the row an update or delete needs is gone, for example when
+    // a room is deleted between the service's check and its write.
+    if (exception.code === 'P2025') {
+      return {
+        statusCode: HttpStatus.NOT_FOUND,
+        code: 'NOT_FOUND',
+        message: notFoundMessage(exception.meta),
+      };
+    }
   }
   return {
     statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -126,4 +135,9 @@ function isHealthReport(exception: unknown): exception is HttpException {
     response.status === 'error' &&
     'details' in response
   );
+}
+
+function notFoundMessage(meta: Record<string, unknown> | undefined): string {
+  const model = meta?.['modelName'];
+  return typeof model === 'string' ? `${model} not found` : 'Not found';
 }
