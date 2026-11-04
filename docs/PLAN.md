@@ -1,8 +1,10 @@
 # tos-chat — Plan (v1)
 
-A chat app built to learn NestJS by doing. Users log in with GitHub, Google, Telegram, or email and password, see a list of rooms, and chat in real time. Rooms are **public** (join and chat) or **private** (password required to become a member).
+A chat app built to learn NestJS by doing. Users log in with GitHub, Google, or email and password, see a list of rooms, and chat in real time. Rooms are **public** (join and chat) or **private** (password required to become a member).
 
-Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better Auth) on 2026-10-30. Changes to these decisions should be recorded here.
+Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better Auth) on 2026-10-30; release scope, lesson order, and room rules updated on 2026-11-04. Changes to these decisions should be recorded here.
+
+**v1 is released when it is deployed and people can use it in a browser.**
 
 ## Stack
 
@@ -20,16 +22,16 @@ Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better A
 - Web: `http://localhost:3000`, api: `http://localhost:4000`
 - Next `rewrites` proxy `/api/*` → api and `/socket.io/*` → api, so the browser sees **one origin** (cookies `SameSite=Lax`, no CORS needed in dev).
 - Postgres: dev on `127.0.0.1:5432` (`tos_chat`), test on `127.0.0.1:5433` (`tos_chat_test`, tmpfs). Use `127.0.0.1`, not `localhost` (IPv6 `::1` does not reach the test port on this machine).
-- Telegram OIDC needs a public HTTPS callback registered with BotFather → ngrok's free static domain in dev (only from Lesson 10). No domain is bought until deployment.
+- No domain is bought until deployment (Lesson 13).
 - Mail: `MAIL_DRIVER=console` in dev and tests logs verification and reset links to the Nest console.
 
 ## Auth
 
 - **NestJS owns auth** via [Better Auth](https://better-auth.com) 1.7.x, mounted in Nest with `@thallesp/nestjs-better-auth`, Prisma adapter. Browser path: `/api/auth/*`, kept unstripped by its own web rewrite because Better Auth answers only on its `basePath` (`/api/auth`). Every other `/api/*` path is stripped.
-- **Sign-in methods:** GitHub, Google (built-in social providers), email and password, and Telegram through the official `genericOAuth` plugin against Telegram's OIDC (`https://oauth.telegram.org/.well-known/openid-configuration`, PKCE). No third-party Telegram plugin.
+- **Sign-in methods:** GitHub, Google (built-in social providers), and email and password. Telegram moved to v2 on 2026-11-04 (see [BACKLOG.md](./BACKLOG.md)).
 - **Email and password:** `requireEmailVerification: true`, 12–128 characters, default scrypt hashing, `revokeSessionsOnPasswordReset: true`. Emails go through our `Mailer` (`ConsoleMailer` in dev and tests, `ResendMailer` in prod).
 - **Sessions:** database sessions in an opaque `HttpOnly` cookie, `expiresIn` 7 days, `updateAge` 1 day, `cookieCache` 5 minutes (a revoked session can live up to 5 minutes). No JWTs, no refresh endpoint.
-- **Identity:** `accountLinking` on with `trustedProviders: ["github", "google"]`: the same verified email joins one user. Telegram has no email (`<sub>@telegram.invalid`, unverified) and links only from inside a session.
+- **Identity:** `accountLinking` on with `trustedProviders: ["github", "google"]`: the same verified email joins one user.
 - **Guarding:** the library's global `AuthGuard` (deny by default), `@AllowAnonymous()` on open routes, `@Session()` for the actor.
 
 ## Data model
@@ -50,6 +52,10 @@ Message(id cuid, roomId, authorId, content <= 2000 chars, createdAt,
 - All rooms appear in the list; private rooms show a lock and ask for the password on click.
 - `POST /rooms/:id/join` creates a `Membership` (password checked for private rooms, throttled). Only members can read history or send messages.
 - Owner: rename, change password, delete (messages cascade). Members: leave. Owner cannot leave (deletes instead).
+- `type` is fixed at creation. A private room needs a password of 8–128 characters; a public room cannot have one.
+- Joining is safe to repeat: an existing member gets 200 with no password check. A wrong or missing password gets 403, not 401, because the web redirects 401 to `/login`.
+- Leaving is safe to repeat: a non-member gets 204. The owner gets 403.
+- Changing the password keeps existing members. In v1 an owner can only remove a member by deleting the room; removing members is a v2 item in [BACKLOG.md](./BACKLOG.md).
 
 ## REST (behind `/api` from the browser)
 
@@ -108,23 +114,28 @@ Agreed 2026-10-28. The how-to lives in `.claude/rules/api-*.md`; this section re
 
 ## How we build it
 
-- Infra and the Next.js frontend are scaffolded by Claude.
+- Infra is scaffolded by Claude.
 - **Every NestJS feature is a lesson the owner types**: `nestjs-learn-write-lesson` builds the reference in a separate worktree, `nestjs-learn-coach` coaches. Each lesson ships at least one unit and one e2e test.
+- **The owner also types the web UI while learning** (decided 2026-11-04, replacing "scaffolded by Claude"). The `nestjs-learn-*` skills cover the API only, so how web lessons are coached is decided when Lesson 9 starts.
 
 ## Lesson order
 
 Reordered 2026-10-31, after Lesson 2: NestJS concepts first. The remaining sign-in providers are mostly Better Auth configuration, so they move after the chat core; email and password stays ahead of them for the `MailModule` DI practice. Rooms CRUD is split in two, and private rooms move to join/leave.
 
+Updated 2026-11-04: throttling gets its own lesson, the web UI and deployment join v1, and Telegram moves to v2.
+
 1. Nest skeleton, `@nestjs/config`, Prisma module, first migration
 2. Better Auth in Nest: generated schema from Lesson 1's `User`, GitHub sign-in, global `AuthGuard`, `@Session()`, `GET /me`
 3. Rooms A: `POST /rooms` + `GET /rooms` (public rooms only), owner `Membership`, global `ValidationPipe`, `ApiError` + exception filter, response DTOs
 4. Rooms B: `PATCH` + `DELETE /rooms/:id`, ownership checks (403/404), cascades
-5. Join/leave, private rooms (`type`, `passwordHash` migration), throttling
-6. Messages + cursor pagination
-7. Socket.IO Gateway: handshake auth, membership guard, events
-8. Email and password: verification, reset, `MailModule` with the console mailer
-9. Google + account linking
-10. Telegram via `genericOAuth` OIDC (starts with a spike: one real login through ngrok)
-11. Hardening sweep + e2e coverage
+5. Join/leave, private rooms (`type`, `passwordHash` migration, argon2)
+6. Throttling: `@nestjs/throttler`, global guard, user + room tracker on join
+7. Messages + cursor pagination
+8. Socket.IO Gateway: handshake auth, membership guard, events, `message:send` throttle
+9. Web UI: rooms and live chat, typed by the owner (may split into several lessons)
+10. Email and password: verification, reset, `MailModule` with the console mailer, sign-in forms
+11. Google + account linking
+12. Hardening sweep + e2e coverage
+13. Deployment: hosting for api, web, and Postgres; a domain at Cloudflare Registrar; production cookies; Resend sending domain (`mail.<domain>`)
 
 Post-v1 work lives in [BACKLOG.md](./BACKLOG.md).
