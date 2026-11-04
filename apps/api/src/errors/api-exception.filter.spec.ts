@@ -175,6 +175,19 @@ describe('ApiExceptionFilter', () => {
     });
   });
 
+  it('maps a failed foreign key (P2003) to 404', () => {
+    const gone = new Prisma.PrismaClientKnownRequestError('Foreign key', {
+      code: 'P2003',
+      clientVersion: '7.10.1',
+      meta: { modelName: 'Membership' },
+    });
+
+    expect(handle(gone)).toEqual({
+      status: 404,
+      body: { statusCode: 404, code: 'NOT_FOUND', message: 'Not found' },
+    });
+  });
+
   it('answers 500 for any other Prisma error', () => {
     const logged = muteErrorLog();
     const other = new Prisma.PrismaClientKnownRequestError('Timed out', {
