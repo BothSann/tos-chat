@@ -15,6 +15,7 @@ import { CreateRoomDto } from './create-room.dto.js';
 import { RoomResponse } from './room.response.js';
 import { ParseCuidPipe } from '../common/parse-cuid.pipe.js';
 import { UpdateRoomDto } from './update-room.dto.js';
+import { JoinRoomDto } from './join-room.dto.js';
 
 @Controller('rooms')
 export class RoomsController {
@@ -52,5 +53,26 @@ export class RoomsController {
     @Param('id', new ParseCuidPipe('Room')) id: string,
   ): Promise<void> {
     await this.roomsService.remove(session.user.id, id);
+  }
+
+  @Post(':id/join')
+  @HttpCode(HttpStatus.OK)
+  async join(
+    @Session() session: UserSession,
+    @Param('id', new ParseCuidPipe('Room')) id: string,
+    @Body() dto: JoinRoomDto,
+  ): Promise<RoomResponse> {
+    const room = await this.roomsService.join(session.user.id, id, dto);
+
+    return RoomResponse.from(room);
+  }
+
+  @Post(':id/leave')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async leave(
+    @Session() session: UserSession,
+    @Param('id', new ParseCuidPipe('Room')) id: string,
+  ): Promise<void> {
+    await this.roomsService.leave(session.user.id, id);
   }
 }

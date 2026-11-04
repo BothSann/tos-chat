@@ -62,6 +62,7 @@ describe('Rooms update and delete (e2e)', () => {
         id: roomId,
         name: 'random',
         description: 'Say hi',
+        type: 'PUBLIC',
         ownerId: userId,
         createdAt: expect.any(String),
         isMember: true,

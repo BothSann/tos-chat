@@ -116,6 +116,15 @@ function toApiError(exception: unknown): ApiError {
         message: notFoundMessage(exception.meta),
       };
     }
+    // P2003: a foreign key refused the write because the row it points at is
+    // gone, for example when a room is deleted while someone is joining it.
+    if (exception.code === 'P2003') {
+      return {
+        statusCode: HttpStatus.NOT_FOUND,
+        code: 'NOT_FOUND',
+        message: 'Not found',
+      };
+    }
   }
   return {
     statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
