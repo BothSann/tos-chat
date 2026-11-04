@@ -59,4 +59,24 @@ describe('UpdateRoomDto', () => {
   it('rejects fields that are not part of a room update', () => {
     expect(check({ ownerId: 'cuser1' }).failed).toEqual(['ownerId']);
   });
+
+  describe('password and type', () => {
+    it('accepts a new password of 8 to 128 characters', () => {
+      expect(check({ password: 'x'.repeat(8) }).failed).toEqual([]);
+      expect(check({ password: 'x'.repeat(128) }).failed).toEqual([]);
+    });
+
+    it.each([
+      ['null', null],
+      ['empty', ''],
+      ['too short', 'x'.repeat(7)],
+      ['too long', 'x'.repeat(129)],
+    ])('rejects a password that is %s', (_, password) => {
+      expect(check({ password }).failed).toEqual(['password']);
+    });
+
+    it('does not accept type at all', () => {
+      expect(check({ type: 'PRIVATE' }).failed).toEqual(['type']);
+    });
+  });
 });

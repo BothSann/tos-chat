@@ -1,3 +1,4 @@
+import type { RoomType } from '@tos-chat/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Injectable } from '@nestjs/common';
 
@@ -5,6 +6,7 @@ export interface Room {
   id: string;
   name: string;
   description: string | null;
+  type: RoomType;
   ownerId: string;
   createdAt: Date;
 }
@@ -13,21 +15,29 @@ export interface RoomForViewer extends Room {
   isMember: boolean;
 }
 
+export interface RoomForJoin extends RoomForViewer {
+  passwordHash: string | null;
+}
+
 export interface NewRoom {
   name: string;
   description: string | null;
+  type: RoomType;
+  passwordHash: string | null;
   ownerId: string;
 }
 
 export interface RoomChanges {
   name?: string;
   description?: string | null;
+  passwordHash?: string | null;
 }
 
 const roomColumns = {
   id: true,
   name: true,
   description: true,
+  type: true,
   ownerId: true,
   createdAt: true,
 } as const;
@@ -84,6 +94,43 @@ export class RoomsRepository {
     return this.prisma.room.findUnique({
       where: { id },
       select: roomColumns,
+    });
+  }
+
+  async findForJoin(id: string, userId: string): Promise<RoomForJoin | null> {
+    const row = await this.prisma.room.findUnique({
+      where: { id },
+      select: {
+        ...roomColumns,
+        passwordHash: true,
+        memberships: {
+          where: {
+            userId,
+          },
+          select: {
+            userId: true,
+          },
+        },
+      },
+    });
+
+    if (!row) return null;
+
+    const { memberships, ...room } = row;
+    return { ...room, isMember: memberships.length > 0 };
+  }
+
+  async addMember(userId: string, roomId: string): Promise<void> {
+    await this.prisma.membership.upsert({
+      where: { userId_roomId: { userId, roomId } },
+      create: { userId, roomId, role: 'MEMBER' },
+      update: {},
+    });
+  }
+
+  async removeMember(userId: string, roomId: string): Promise<void> {
+    await this.prisma.membership.deleteMany({
+      where: { userId, roomId },
     });
   }
 
