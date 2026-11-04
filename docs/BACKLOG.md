@@ -19,10 +19,11 @@ Cut from v1 to keep it small, but **must-have** later. Each item is meant to bec
 
 - [ ] **Two-factor authentication**: Better Auth `twoFactor` plugin (TOTP + backup codes)
 - [ ] **Kick and ban**: owner moderation, banned users cannot rejoin
+- [ ] **Password change removes members**: one transaction updates the hash and deletes every membership except the owner's; the gateway removes their live sockets from the room
+- [ ] **Telegram sign-in**: official `genericOAuth` plugin against Telegram's OIDC (`https://oauth.telegram.org/.well-known/openid-configuration`, PKCE), no third-party plugin. Start with a spike: one real login. Needs a public HTTPS callback registered with BotFather (a Cloudflare tunnel or the real host). Telegram has no email (`<sub>@telegram.invalid`, unverified), so it links only from inside a session
 
 ## Architecture and ops
 
 - [ ] **Web e2e loading-sequence tests**: Playwright `instant()` tests asserting what renders before uncached work resolves (`nextjs-app-architecture` → `references/testing.md`)
 - [ ] **ESLint guards for web rules**: enforce the rules that keep getting broken (e.g. no `*-queries` imports in `src/app/`, no barrels)
 - [ ] **Modular-monolith migration**: DDD layers + dependency-cruiser boundaries (`nestjs-modular-monolith` skill)
-- [ ] **Deployment**: hosting for api, web, and Postgres; buy a domain at Cloudflare Registrar; production cookies; Resend sending domain (`mail.<domain>`); move Telegram's callback from ngrok to a named Cloudflare tunnel or the real host
