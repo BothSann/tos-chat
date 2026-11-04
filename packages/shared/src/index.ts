@@ -23,10 +23,13 @@ export interface ApiError {
   fields?: Record<string, string[]>;
 }
 
+export type RoomType = "PUBLIC" | "PRIVATE";
+
 export interface RoomView {
   id: string;
   name: string;
   description: string | null;
+  type: RoomType;
   ownerId: string;
   createdAt: string;
   isMember: boolean;

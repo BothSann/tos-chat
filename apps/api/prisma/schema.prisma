@@ -78,14 +78,21 @@ model RateLimit {
     lastRequest BigInt
 }
 
+enum RoomType {
+    PUBLIC
+    PRIVATE
+}
+
 model Room {
-    id          String       @id @default(cuid())
-    name        String       @unique
-    description String?
-    ownerId     String
-    owner       User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-    createdAt   DateTime     @default(now())
-    memberships Membership[]
+    id           String       @id @default(cuid())
+    name         String       @unique
+    description  String?
+    type         RoomType     @default(PUBLIC)
+    passwordHash String?
+    ownerId      String
+    owner        User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+    createdAt    DateTime     @default(now())
+    memberships  Membership[]
 
     @@index([ownerId])
 }
