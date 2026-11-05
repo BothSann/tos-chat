@@ -24,6 +24,7 @@ Cut from v1 to keep it small, but **must-have** later. Each item is meant to bec
 
 ## Architecture and ops
 
+- [ ] **Shared Redis store for throttling**: for when the API runs on more than one instance. In-memory counters count per instance and reset on restart or redeploy
 - [ ] **Web e2e loading-sequence tests**: Playwright `instant()` tests asserting what renders before uncached work resolves (`nextjs-app-architecture` → `references/testing.md`)
 - [ ] **ESLint guards for web rules**: enforce the rules that keep getting broken (e.g. no `*-queries` imports in `src/app/`, no barrels)
 - [ ] **Modular-monolith migration**: DDD layers + dependency-cruiser boundaries (`nestjs-modular-monolith` skill)

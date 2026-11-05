@@ -2,7 +2,7 @@
 
 A chat app built to learn NestJS by doing. Users log in with GitHub, Google, or email and password, see a list of rooms, and chat in real time. Rooms are **public** (join and chat) or **private** (password required to become a member).
 
-Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better Auth) on 2026-10-30; release scope, lesson order, and room rules updated on 2026-11-04. Changes to these decisions should be recorded here.
+Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better Auth) on 2026-10-30; release scope, lesson order, and room rules updated on 2026-11-04; throttling keys and storage decided on 2026-11-05. Changes to these decisions should be recorded here.
 
 **v1 is released when it is deployed and people can use it in a browser.**
 
@@ -81,7 +81,7 @@ Membership is created over REST only; the socket only subscribes. Messages are p
 
 ## Hardening (every lesson)
 
-Global `ValidationPipe` (whitelist, transform) + class-validator DTOs · `@nestjs/config` with schema-validated env · Better Auth's limiter on `/api/auth/*`, `@nestjs/throttler` on private join and `message:send` · global exception filter with one error shape · helmet.
+Global `ValidationPipe` (whitelist, transform) + class-validator DTOs · `@nestjs/config` with schema-validated env · Better Auth's limiter on `/api/auth/*`, `@nestjs/throttler` on `POST /rooms/:id/join` and `message:send` · global exception filter with one error shape · helmet.
 
 ## Frontend architecture
 
@@ -108,8 +108,8 @@ Agreed 2026-10-28. The how-to lives in `.claude/rules/api-*.md`; this section re
 - **Mail:** `MailModule` exports a `Mailer` token; `MAIL_DRIVER` (`console` | `resend`) picks `ConsoleMailer` or `ResendMailer`. Better Auth callbacks call `Mailer`, never Resend directly.
 - **Data:** `prisma` / `@prisma/client` pinned to 7.10.1 with `PrismaPg`; one `PrismaService`; a repository per module; services never touch Prisma.
 - **Contract:** one `ApiError { statusCode, code, message, fields? }` in `@tos-chat/shared`; validation → 422 + `fields`; response DTOs with `excludeExtraneousValues` implementing shared `*View` types; socket acks `{ ok, data } | { ok: false, error }`.
-- **Structure:** modules `config`, `prisma`, `auth`, `mail`, `users`, `rooms`, `messages`, `chat`, `health`; `@nestjs/event-emitter` for cross-module side effects (`room.deleted`); config validated by zod.
-- **Throttling:** Better Auth's limiter (database storage) on `/api/auth/*` (100/min, 10/min on sign-in); `@nestjs/throttler` 100/min default, 5/min per user + room on join, 10 per 10 s per socket on `message:send`.
+- **Structure:** modules `config`, `prisma`, `auth`, `mail`, `users`, `rooms`, `messages`, `chat`, `health`, `throttling` (added 2026-11-05: imported after `AuthModule` so its guard runs second and can read the user); `@nestjs/event-emitter` for cross-module side effects (`room.deleted`); config validated by zod.
+- **Throttling:** Better Auth's limiter (database storage) on `/api/auth/*` (100/min, 10/min on sign-in); `@nestjs/throttler` 100/min default per user per route (per IP when anonymous, because server components reach Nest from the Next server's IP), 5/min per user + room on every join attempt, public or private, 10 per 10 s per socket on `message:send`. Counters stay in memory for v1; a shared store is in [BACKLOG.md](./BACKLOG.md).
 - **Not adopted:** Fastify, caching, API versioning, microservices (except `/health`), DDD, tracing.
 
 ## How we build it
@@ -129,7 +129,7 @@ Updated 2026-11-04: throttling gets its own lesson, the web UI and deployment jo
 3. Rooms A: `POST /rooms` + `GET /rooms` (public rooms only), owner `Membership`, global `ValidationPipe`, `ApiError` + exception filter, response DTOs
 4. Rooms B: `PATCH` + `DELETE /rooms/:id`, ownership checks (403/404), cascades
 5. Join/leave, private rooms (`type`, `passwordHash` migration, argon2)
-6. Throttling: `@nestjs/throttler`, global guard, user + room tracker on join
+6. Throttling: `@nestjs/throttler`, global guard with a user tracker (IP when anonymous), user + room tracker on join
 7. Messages + cursor pagination
 8. Socket.IO Gateway: handshake auth, membership guard, events, `message:send` throttle
 9. Web UI: rooms and live chat, typed by the owner (may split into several lessons)
