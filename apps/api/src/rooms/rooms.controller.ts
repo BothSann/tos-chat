@@ -16,6 +16,8 @@ import { RoomResponse } from './room.response.js';
 import { ParseCuidPipe } from '../common/parse-cuid.pipe.js';
 import { UpdateRoomDto } from './update-room.dto.js';
 import { JoinRoomDto } from './join-room.dto.js';
+import { Throttle } from '@nestjs/throttler';
+import { joinTracker } from './join-tracker.js';
 
 @Controller('rooms')
 export class RoomsController {
@@ -57,6 +59,13 @@ export class RoomsController {
 
   @Post(':id/join')
   @HttpCode(HttpStatus.OK)
+  @Throttle({
+    default: {
+      limit: 5,
+      ttl: 60_000,
+      getTracker: joinTracker,
+    },
+  })
   async join(
     @Session() session: UserSession,
     @Param('id', new ParseCuidPipe('Room')) id: string,

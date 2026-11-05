@@ -8,6 +8,7 @@ import { createAuth } from './auth/auth.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { UsersModule } from './users/users.module.js';
 import { RoomsModule } from './rooms/rooms.module.js';
+import { ThrottlingModule } from './throttling/throttling.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,9 @@ import { RoomsModule } from './rooms/rooms.module.js';
         auth: createAuth(prisma, config),
       }),
     }),
+    // Must stay after AuthModule: Nest runs global guards in the order it finds
+    // them, and UserThrottlerGuard reads the user that AuthGuard sets.
+    ThrottlingModule,
     HealthModule,
     UsersModule,
     RoomsModule,

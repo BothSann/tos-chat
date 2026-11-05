@@ -296,12 +296,13 @@ describe('Rooms join, leave, and private rooms (e2e)', () => {
       const user = await signInNewUser(app);
 
       const results = await Promise.all(
-        Array.from({ length: 8 }, () =>
+        // 5 is the join limit per user + room (L-06).
+        Array.from({ length: 5 }, () =>
           user.agent.post(`/rooms/${roomId}/join`),
         ),
       );
 
-      expect(results.map((res) => res.status)).toEqual(Array(8).fill(200));
+      expect(results.map((res) => res.status)).toEqual(Array(5).fill(200));
       expect(await membershipCount(user.userId, roomId)).toBe(1);
     });
 
