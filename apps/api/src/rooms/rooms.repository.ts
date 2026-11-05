@@ -121,10 +121,10 @@ export class RoomsRepository {
   }
 
   async addMember(userId: string, roomId: string): Promise<void> {
-    await this.prisma.membership.upsert({
-      where: { userId_roomId: { userId, roomId } },
-      create: { userId, roomId, role: 'MEMBER' },
-      update: {},
+    // `upsert` can throw P2002 when joins race. This insert ignores a duplicate.
+    await this.prisma.membership.createMany({
+      data: { userId, roomId, role: 'MEMBER' },
+      skipDuplicates: true,
     });
   }
 
