@@ -1,5 +1,5 @@
 # Short commands for tos-chat. Each recipe wraps a pnpm script or the api's Prisma CLI.
-# Requires just: cargo install just
+# Requires just: winget install Casey.Just
 
 set windows-shell := ["pwsh", "-NoProfile", "-c"]
 

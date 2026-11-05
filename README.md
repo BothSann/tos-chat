@@ -19,7 +19,7 @@ packages/shared  Types shared by api and web
 
 ## Run
 
-Requires Node 24, pnpm 11, Docker, and `just` (`cargo install just`).
+Requires Node 24, pnpm 11, Docker, and `just` (`winget install Casey.Just`).
 
 ```sh
 pnpm install
