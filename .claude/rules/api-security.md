@@ -35,7 +35,7 @@ Authentication, authorization, and abuse limits. Nest is the only authority; the
     | `/api/auth/*` default | 100/min per IP | Better Auth |
     | `/api/auth/sign-in/*` | 10/min per IP | Better Auth `customRules` |
     | Global default | 100/min per user per route, per IP when anonymous | throttler |
-    | `POST /rooms/:id/join` | 5/min per user + room, every attempt | throttler |
+    | `POST /rooms/:id/join` | 5/min per user + room, and 20/min per user across rooms, every attempt | throttler |
     | `message:send` | 10 per 10 s per socket | throttler |
 14. **MUST** enable helmet, and CORS limited to the web origin with `credentials: true`.
 15. **MUST** cap message `content` at 2000 characters in the DTO.

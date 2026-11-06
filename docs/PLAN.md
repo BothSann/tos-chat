@@ -2,7 +2,7 @@
 
 A chat app built to learn NestJS by doing. Users log in with GitHub, Google, or email and password, see a list of rooms, and chat in real time. Rooms are **public** (join and chat) or **private** (password required to become a member).
 
-Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better Auth) on 2026-10-30; release scope, lesson order, and room rules updated on 2026-11-04; throttling keys and storage decided on 2026-11-05. Changes to these decisions should be recorded here.
+Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better Auth) on 2026-10-30; release scope, lesson order, and room rules updated on 2026-11-04; throttling keys and storage decided on 2026-11-05; per-user join cap added on 2026-11-06. Changes to these decisions should be recorded here.
 
 **v1 is released when it is deployed and people can use it in a browser.**
 
@@ -109,7 +109,7 @@ Agreed 2026-10-28. The how-to lives in `.claude/rules/api-*.md`; this section re
 - **Data:** `prisma` / `@prisma/client` pinned to 7.10.1 with `PrismaPg`; one `PrismaService`; a repository per module; services never touch Prisma.
 - **Contract:** one `ApiError { statusCode, code, message, fields? }` in `@tos-chat/shared`; validation → 422 + `fields`; response DTOs with `excludeExtraneousValues` implementing shared `*View` types; socket acks `{ ok, data } | { ok: false, error }`.
 - **Structure:** modules `config`, `prisma`, `auth`, `mail`, `users`, `rooms`, `messages`, `chat`, `health`, `throttling` (added 2026-11-05: imported after `AuthModule` so its guard runs second and can read the user); `@nestjs/event-emitter` for cross-module side effects (`room.deleted`); config validated by zod.
-- **Throttling:** Better Auth's limiter (database storage) on `/api/auth/*` (100/min, 10/min on sign-in); `@nestjs/throttler` 100/min default per user per route (per IP when anonymous, because server components reach Nest from the Next server's IP), 5/min per user + room on every join attempt, public or private, 10 per 10 s per socket on `message:send`. Counters stay in memory for v1; a shared store is in [BACKLOG.md](./BACKLOG.md).
+- **Throttling:** Better Auth's limiter (database storage) on `/api/auth/*` (100/min, 10/min on sign-in); `@nestjs/throttler` 100/min default per user per route (per IP when anonymous, because server components reach Nest from the Next server's IP), 5/min per user + room and 20/min per user across rooms on every join attempt, public or private, 10 per 10 s per socket on `message:send`. Counters stay in memory for v1; a shared store is in [BACKLOG.md](./BACKLOG.md).
 - **Not adopted:** Fastify, caching, API versioning, microservices (except `/health`), DDD, tracing.
 
 ## How we build it
