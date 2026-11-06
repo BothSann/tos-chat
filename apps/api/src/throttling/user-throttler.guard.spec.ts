@@ -1,5 +1,10 @@
+import type { ExecutionContext } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { ThrottlerModule } from '@nestjs/throttler';
+import {
+  ThrottlerException,
+  type ThrottlerLimitDetail,
+  ThrottlerModule,
+} from '@nestjs/throttler';
 import { UserThrottlerGuard } from './user-throttler.guard.js';
 
 describe('UserThrottlerGuard', () => {
@@ -27,5 +32,20 @@ describe('UserThrottlerGuard', () => {
     await expect(
       guard['getTracker']({ user: null, ip: '203.0.113.9' }),
     ).resolves.toBe('203.0.113.9');
+  });
+
+  it('sends the standard Retry-After for a named throttler', async () => {
+    const res = { header: vi.fn() };
+    const context = {
+      switchToHttp: () => ({ getRequest: () => ({}), getResponse: () => res }),
+    } as unknown as ExecutionContext;
+
+    await expect(
+      guard['throwThrottlingException'](context, {
+        timeToBlockExpire: 42,
+      } as ThrottlerLimitDetail),
+    ).rejects.toBeInstanceOf(ThrottlerException);
+
+    expect(res.header).toHaveBeenCalledWith('Retry-After', 42);
   });
 });
