@@ -19,7 +19,7 @@ Prisma, repositories, transactions, and migrations. Data model: `docs/PLAN.md` �
 8. **MUST** paginate messages by cursor `(createdAt, id)`, newest first, `limit` ≤ 50. **NEVER** use offset pagination.
 9. **NEVER** cause N+1 queries. Load relations with `include`/`select` or a single `in` query.
 10. **MUST** cascade deletes in the schema (`Room` → `Membership`, `Message`), not with manual loops.
-11. **MUST** connect with `127.0.0.1` in `DATABASE_URL` (dev `:5432`, test `:5433`), not `localhost`.
+11. **MUST** connect with `127.0.0.1` in `DATABASE_URL` (dev `:5432`, test `:5435`), not `localhost`.
 
 ## Example
 

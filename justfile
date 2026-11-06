@@ -27,11 +27,11 @@ typecheck:
 test:
     pnpm --filter api test
 
-# Run api e2e tests (test db on :5433)
+# Run api e2e tests (test db on :5435)
 e2e:
     pnpm --filter api test:e2e
 
-# Start Postgres dev :5432 + test :5433
+# Start Postgres dev :5432 + test :5435
 up:
     pnpm db:up
 

@@ -21,7 +21,7 @@ Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better A
 
 - Web: `http://localhost:3000`, api: `http://localhost:4000`
 - Next `rewrites` proxy `/api/*` → api and `/socket.io/*` → api, so the browser sees **one origin** (cookies `SameSite=Lax`, no CORS needed in dev).
-- Postgres: dev on `127.0.0.1:5432` (`tos_chat`), test on `127.0.0.1:5433` (`tos_chat_test`, tmpfs). Use `127.0.0.1`, not `localhost` (IPv6 `::1` does not reach the test port on this machine).
+- Postgres: dev on `127.0.0.1:5432` (`tos_chat`), test on `127.0.0.1:5435` (`tos_chat_test`, tmpfs). Use `127.0.0.1`, not `localhost` (IPv6 `::1` does not reach the test port on this machine).
 - No domain is bought until deployment (Lesson 13).
 - Mail: `MAIL_DRIVER=console` in dev and tests logs verification and reset links to the Nest console.
 
