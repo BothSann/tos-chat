@@ -61,6 +61,10 @@ export class RoomsController {
   @HttpCode(HttpStatus.OK)
   @Throttle({
     default: {
+      limit: 20,
+      ttl: 60_000,
+    },
+    joinRoom: {
       limit: 5,
       ttl: 60_000,
       getTracker: joinTracker,

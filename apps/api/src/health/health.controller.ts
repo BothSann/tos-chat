@@ -4,7 +4,10 @@ import { HealthCheck, HealthCheckResult } from '@nestjs/terminus';
 import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import { SkipThrottle } from '@nestjs/throttler';
 
-@SkipThrottle()
+@SkipThrottle({
+  default: true,
+  joinRoom: true,
+})
 @AllowAnonymous()
 @Controller('health')
 export class HealthController {
