@@ -16,9 +16,9 @@ Prisma, repositories, transactions, and migrations. Data model: `docs/PLAN.md` �
 5. **MUST** run every query in a transaction through `tx` (`prisma.$transaction(async (tx) => ...)`). **NEVER** use the outer client inside the callback. Repositories accept an optional `tx` when a service composes a transaction.
 6. **MUST** change the schema only with `just migrate <change>` (`prisma migrate dev --name <change>`) and commit the migration. **NEVER** use `prisma db push` and **NEVER** edit an applied migration.
 7. **MUST** keep the indexes in PLAN.md: `Account unique(providerId, accountId)`, `Room.name unique`, `Membership PK(userId, roomId)`, `Message index(roomId, createdAt, id)`.
-8. **MUST** paginate messages by cursor `(createdAt, id)`, newest first, `limit` ≤ 50. **NEVER** use offset pagination.
+8. **MUST** paginate messages by a hand-written cursor: an opaque base64url string of `(createdAt, id)`, compared as `createdAt < x OR (createdAt = x AND id < y)`, newest first, `limit` ≤ 50, fetching `limit + 1` rows to detect the last page. **NEVER** use offset pagination or Prisma's `cursor: { id }`, which returns 0 rows and no error once the cursor message is hard-deleted.
 9. **NEVER** cause N+1 queries. Load relations with `include`/`select` or a single `in` query.
-10. **MUST** cascade deletes in the schema (`Room` → `Membership`, `Message`), not with manual loops.
+10. **MUST** cascade deletes in the schema (`Room` → `Membership`, `Message`; `User` → `Message`), not with manual loops.
 11. **MUST** connect with `127.0.0.1` in `DATABASE_URL` (dev `:5432`, test `:5435`), not `localhost`.
 
 ## Example

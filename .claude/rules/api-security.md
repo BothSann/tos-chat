@@ -23,7 +23,7 @@ Authentication, authorization, and abuse limits. Nest is the only authority; the
 
 ### Authorization
 
-10. **MUST** check record permissions **in the service, after loading the record**: membership to read history, join the socket room, or send; ownership to rename, change the room password, or delete. Throw `ForbiddenException`.
+10. **MUST** check record permissions **in the service, after loading the record**: membership to read history, join the socket room, or send; ownership to rename, change the room password, or delete. Throw `ForbiddenException`. `RoomsService.assertMember(userId, roomId)` is the one membership check for other modules: 404 for a missing room, 403 for a non-member.
 11. **NEVER** trust ids from the body or socket payload for identity. The actor is always `@Session()` or the socket's authenticated user.
 
 ### Abuse limits and hardening
