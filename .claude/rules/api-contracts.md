@@ -32,6 +32,7 @@ What the API promises the web. `lib/api-server.ts` and the socket hooks depend o
 9. **MUST** reject unauthenticated handshakes with `connect_error` whose `data.code` is `UNAUTHORIZED`.
 10. **MUST** keep socket event names and payloads identical to `docs/PLAN.md` → Socket contract.
 11. **NEVER** put runtime code in `packages/shared`: types, interfaces, and `as const` string unions only.
+12. **MUST** return message history as `{ items: MessageView[]; nextCursor: string | null }`, typed in `@tos-chat/shared`, with `author: { id, name, image }` on each item. `limit` defaults to 30. A `limit` over 50 or a malformed `cursor` gives 422 with `fields`.
 
 ## Check
 

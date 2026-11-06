@@ -2,7 +2,7 @@
 
 A chat app built to learn NestJS by doing. Users log in with GitHub, Google, or email and password, see a list of rooms, and chat in real time. Rooms are **public** (join and chat) or **private** (password required to become a member).
 
-Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better Auth) on 2026-10-30; release scope, lesson order, and room rules updated on 2026-11-04; throttling keys and storage decided on 2026-11-05; per-user join cap added on 2026-11-06. Changes to these decisions should be recorded here.
+Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better Auth) on 2026-10-30; release scope, lesson order, and room rules updated on 2026-11-04; throttling keys and storage decided on 2026-11-05; per-user join cap and message history decided on 2026-11-06. Changes to these decisions should be recorded here.
 
 **v1 is released when it is deployed and people can use it in a browser.**
 
@@ -56,6 +56,14 @@ Message(id cuid, roomId, authorId, content <= 2000 chars, createdAt,
 - Joining is safe to repeat: an existing member gets 200 with no password check. A wrong or missing password gets 403, not 401, because the web redirects 401 to `/login`.
 - Leaving is safe to repeat: a non-member gets 204. The owner gets 403.
 - Changing the password keeps existing members. In v1 an owner can only remove a member by deleting the room; removing members is a v2 item in [BACKLOG.md](./BACKLOG.md).
+
+## Messages
+
+- Only members can read history. `RoomsModule` exports `RoomsService`, whose `assertMember(userId, roomId)` gives 404 for a missing room and 403 for a non-member. `MessagesService` and `ChatGateway` both use it.
+- `GET /rooms/:id/messages` returns `{ items: MessageView[], nextCursor: string | null }`, newest first. `limit` defaults to 30; over 50 gives 422, not a silent reduction. The query fetches `limit + 1` rows to detect the last page, with no count query.
+- Each `MessageView` includes `author: { id, name, image }`, loaded with `select`.
+- The cursor is an opaque base64url string of `(createdAt, id)`, compared by hand as `createdAt < x OR (createdAt = x AND id < y)`. A malformed cursor gives 422. Prisma's `cursor: { id }` was declined: it looks up the cursor row on every query, so a hard-deleted cursor message returns 0 rows and no error, which reads as the end of history.
+- Deleting a room or a user cascades to their messages (`Message.author` uses `onDelete: Cascade`, like `Room.owner`). v1 has no route that deletes an account.
 
 ## REST (behind `/api` from the browser)
 
@@ -130,8 +138,8 @@ Updated 2026-11-04: throttling gets its own lesson, the web UI and deployment jo
 4. Rooms B: `PATCH` + `DELETE /rooms/:id`, ownership checks (403/404), cascades
 5. Join/leave, private rooms (`type`, `passwordHash` migration, argon2)
 6. Throttling: `@nestjs/throttler`, global guard with a user tracker (IP when anonymous), user + room tracker on join
-7. Messages + cursor pagination
-8. Socket.IO Gateway: handshake auth, membership guard, events, `message:send` throttle
+7. Message history: `Message` model, `GET /rooms/:id/messages` with cursor pagination, `assertMember`. Read-only: e2e tests seed messages through `PrismaService`, and no temporary write route is added
+8. Socket.IO Gateway: handshake auth, membership guard, events, `message:send` (the first message write, `MessagesService.create`) and its throttle
 9. Web UI: rooms and live chat, typed by the owner (may split into several lessons)
 10. Email and password: verification, reset, `MailModule` with the console mailer, sign-in forms
 11. Google + account linking
