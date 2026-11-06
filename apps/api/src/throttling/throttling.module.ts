@@ -11,6 +11,12 @@ import { UserThrottlerGuard } from './user-throttler.guard.js';
           ttl: 60_000,
           limit: 100,
         },
+        {
+          name: 'joinRoom',
+          ttl: 60_000,
+          limit: Number.MAX_SAFE_INTEGER,
+          setHeaders: false,
+        },
       ],
       errorMessage: 'Too many requests',
     }),

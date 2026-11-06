@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { getStorageToken, ThrottlerStorageService } from '@nestjs/throttler';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
@@ -16,6 +17,7 @@ const TOO_MANY = {
 /** `signInNewUser` calls `GET /me` once, so 99 more reach the limit of 100. */
 const REQUESTS_TO_REACH_ME_LIMIT = 99;
 const JOIN_LIMIT = 5;
+const JOIN_CAP = 20;
 
 describe('Throttling (e2e)', () => {
   let app: INestApplication<App>;
@@ -189,6 +191,147 @@ describe('Throttling (e2e)', () => {
       const user = await signInNewUser(app);
 
       await user.agent.post('/rooms/abc/join').expect(404);
+    });
+  });
+
+  describe('join cap per user', () => {
+    /** Uses up the whole cap: the most one room allows, on as few rooms as it takes. */
+    async function useUpJoinCap(agent: Agent) {
+      for (let room = 0; room < JOIN_CAP / JOIN_LIMIT; room++) {
+        const roomId = await createRoom();
+        for (let i = 0; i < JOIN_LIMIT; i++) {
+          await agent.post(`/rooms/${roomId}/join`).expect(200);
+        }
+      }
+    }
+
+    it('refuses attempt 21 across different rooms, with the ApiError body', async () => {
+      const lastRoomId = await createRoom();
+      const user = await signInNewUser(app);
+      await useUpJoinCap(user.agent);
+
+      const res = await user.agent
+        .post(`/rooms/${lastRoomId}/join`)
+        .expect(429);
+
+      expect(res.body).toEqual(TOO_MANY);
+      expect(res.headers['retry-after']).toMatch(/^\d+$/);
+      expect(await membershipCount(user.userId, lastRoomId)).toBe(0);
+    });
+
+    it('counts attempts the per-room limit refused', async () => {
+      const roomId = await createRoom();
+      const otherRoomId = await createRoom();
+      const user = await signInNewUser(app);
+      for (let i = 0; i < JOIN_LIMIT; i++) {
+        await user.agent.post(`/rooms/${roomId}/join`).expect(200);
+      }
+      for (let i = JOIN_LIMIT; i < JOIN_CAP; i++) {
+        await user.agent.post(`/rooms/${roomId}/join`).expect(429);
+      }
+
+      await user.agent.post(`/rooms/${otherRoomId}/join`).expect(429);
+
+      expect(await membershipCount(user.userId, otherRoomId)).toBe(0);
+    });
+
+    it('sends only the standard headers on join', async () => {
+      const roomId = await createRoom();
+      const user = await signInNewUser(app);
+      let last = await user.agent.post(`/rooms/${roomId}/join`).expect(200);
+      expect(last.headers['x-ratelimit-limit']).toBe(String(JOIN_CAP));
+      expect(last.headers['x-ratelimit-limit-joinroom']).toBeUndefined();
+
+      for (let i = 1; i <= JOIN_LIMIT; i++) {
+        last = await user.agent.post(`/rooms/${roomId}/join`);
+      }
+
+      expect(last.status).toBe(429);
+      expect(last.body).toEqual(TOO_MANY);
+      expect(last.headers['retry-after']).toMatch(/^\d+$/);
+      expect(last.headers['retry-after-joinroom']).toBeUndefined();
+    });
+
+    it('keeps a second user on the same IP open', async () => {
+      const roomId = await createRoom();
+      const user = await signInNewUser(app);
+      const otherUser = await signInNewUser(app);
+      await useUpJoinCap(user.agent);
+      await user.agent.post(`/rooms/${roomId}/join`).expect(429);
+
+      await otherUser.agent.post(`/rooms/${roomId}/join`).expect(200);
+    });
+
+    it('leaves other routes on their own limit', async () => {
+      const user = await signInNewUser(app);
+      await useUpJoinCap(user.agent);
+
+      const me = await user.agent.get('/me').expect(200);
+
+      expect(me.headers['x-ratelimit-limit']).toBe('100');
+      expect(me.headers['x-ratelimit-limit-joinroom']).toBeUndefined();
+    });
+
+    it('sends no rate-limit headers on GET /health', async () => {
+      const res = await request(app.getHttpServer()).get('/health').expect(200);
+
+      const names = Object.keys(res.headers);
+      expect(
+        names.filter((name) => /ratelimit|retry-after/.test(name)),
+      ).toEqual([]);
+    });
+
+    /** Names the throttlers that counted a request, in the order they ran. */
+    async function throttlersThatCounted(send: () => Promise<unknown>) {
+      const increment = vi.spyOn(
+        app.get<ThrottlerStorageService>(getStorageToken()),
+        'increment',
+      );
+      await send();
+      const names = increment.mock.calls.map((call) => call[4]);
+      increment.mockRestore();
+      return names;
+    }
+
+    it('counts both throttlers on join, in order', async () => {
+      const roomId = await createRoom();
+      const user = await signInNewUser(app);
+
+      const names = await throttlersThatCounted(() =>
+        user.agent.post(`/rooms/${roomId}/join`).expect(200),
+      );
+
+      expect(names).toEqual(['default', 'joinRoom']);
+    });
+
+    it('counts neither throttler on GET /health', async () => {
+      const names = await throttlersThatCounted(() =>
+        request(app.getHttpServer()).get('/health').expect(200),
+      );
+
+      expect(names).toEqual([]);
+    });
+
+    it('stops before the room counter once a user is over the cap', async () => {
+      const user = await signInNewUser(app);
+      for (let i = 0; i < JOIN_CAP; i++) {
+        await user.agent.post(`/rooms/not-an-id-${i}/join`).expect(404);
+      }
+
+      const names = await throttlersThatCounted(() =>
+        user.agent.post('/rooms/one-more-id/join').expect(429),
+      );
+
+      expect(names).toEqual(['default']);
+    });
+
+    it('counts malformed ids, and keeps their 404 under the cap', async () => {
+      const user = await signInNewUser(app);
+      for (let i = 0; i < JOIN_CAP; i++) {
+        await user.agent.post(`/rooms/not-an-id-${i}/join`).expect(404);
+      }
+
+      await user.agent.post('/rooms/not-an-id-last/join').expect(429);
     });
   });
 });
