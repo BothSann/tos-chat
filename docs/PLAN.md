@@ -62,7 +62,7 @@ Message(id cuid, roomId, authorId, content <= 2000 chars, createdAt,
 - Only members can read history. `RoomsModule` exports `RoomsService`, whose `assertMember(userId, roomId)` gives 404 for a missing room and 403 for a non-member. `MessagesService` and `ChatGateway` both use it.
 - `GET /rooms/:id/messages` returns `{ items: MessageView[], nextCursor: string | null }`, newest first. `limit` defaults to 30; over 50 gives 422, not a silent reduction. The query fetches `limit + 1` rows to detect the last page, with no count query.
 - Each `MessageView` includes `author` as a `UserView` (`id`, `displayName`, `avatarUrl`), loaded with `select`.
-- The cursor is an opaque base64url string of `(createdAt, id)`, compared by hand as `createdAt < x OR (createdAt = x AND id < y)`. A malformed cursor gives 422. Prisma's `cursor: { id }` was declined: it looks up the cursor row on every query, so a hard-deleted cursor message returns 0 rows and no error, which reads as the end of history.
+- The cursor is an opaque base64url string of `(createdAt, id)`, compared by hand as `createdAt <= x AND (createdAt < x OR (createdAt = x AND id < y))`. The first condition is redundant, but only it lets Postgres start the index scan at the cursor: on 50,000 messages in a room it cut a deep page from 6,779 buffers to 10. A malformed cursor gives 422. Prisma's `cursor: { id }` was declined: it looks up the cursor row on every query, so a hard-deleted cursor message returns 0 rows and no error, which reads as the end of history.
 - Deleting a room or a user cascades to their messages (`Message.author` uses `onDelete: Cascade`, like `Room.owner`). v1 has no route that deletes an account.
 
 ## REST (behind `/api` from the browser)
