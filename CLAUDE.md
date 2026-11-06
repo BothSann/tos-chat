@@ -16,7 +16,7 @@ packages/shared  Types shared by api and web (DTO shapes, socket events), no run
 Requires `just` (`winget install Casey.Just`; Smart App Control blocks a `cargo install` build). `just` alone lists every recipe; each wraps a pnpm script, which CI calls directly.
 
 ```sh
-just up                     # Postgres dev :5432 + test :5433
+just up                     # Postgres dev :5432 + test :5435
 just dev                    # api + web
 just test | just e2e        # api unit | api e2e
 just lint | just typecheck | just build

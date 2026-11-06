@@ -23,7 +23,7 @@ Requires Node 24, pnpm 11, Docker, and `just` (`winget install Casey.Just`).
 
 ```sh
 pnpm install
-just up           # Postgres dev (5432) + test (5433)
+just up           # Postgres dev (5432) + test (5435)
 just dev          # api + web in parallel
 ```
 
