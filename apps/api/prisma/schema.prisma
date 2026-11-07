@@ -24,6 +24,7 @@ model User {
     accounts      Account[]
     rooms         Room[]
     memberships   Membership[]
+    messages      Message[]
 }
 
 model Session {
@@ -93,6 +94,7 @@ model Room {
     owner        User         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
     createdAt    DateTime     @default(now())
     memberships  Membership[]
+    messages     Message[]
 
     @@index([ownerId])
 }
@@ -112,4 +114,17 @@ model Membership {
 
     @@id([userId, roomId])
     @@index([roomId])
+}
+
+model Message {
+    id        String   @id @default(cuid())
+    roomId    String
+    room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+    authorId  String
+    author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+    content   String   @db.VarChar(2000)
+    createdAt DateTime @default(now())
+
+    @@index([roomId, createdAt, id])
+    @@index([authorId])
 }

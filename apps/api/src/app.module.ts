@@ -9,6 +9,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { UsersModule } from './users/users.module.js';
 import { RoomsModule } from './rooms/rooms.module.js';
 import { ThrottlingModule } from './throttling/throttling.module.js';
+import { MessagesModule } from './messages/messages.module.js';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { ThrottlingModule } from './throttling/throttling.module.js';
     HealthModule,
     UsersModule,
     RoomsModule,
+    MessagesModule,
   ],
 })
 export class AppModule {}

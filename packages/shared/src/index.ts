@@ -34,3 +34,16 @@ export interface RoomView {
   createdAt: string;
   isMember: boolean;
 }
+
+export interface MessageView {
+  id: string;
+  roomId: string;
+  content: string;
+  createdAt: string;
+  author: UserView;
+}
+
+export interface MessagePageView {
+  items: MessageView[];
+  nextCursor: string | null;
+}
