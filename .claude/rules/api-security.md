@@ -18,12 +18,12 @@ Authentication, authorization, and abuse limits. Nest is the only authority; the
 5. **MUST** enable `accountLinking` with `trustedProviders: ["github", "google"]` only. Telegram users get `<sub>@telegram.invalid` with `emailVerified: false` and link only from inside a session.
 6. **MUST** take secrets (`BETTER_AUTH_SECRET`, OAuth client secrets, `RESEND_API_KEY`) from validated config only. **NEVER** hardcode or log them.
 7. **MUST** read the actor with the library's `@Session()` decorator. **NEVER** read `req.user` or parse cookies in handlers.
-8. **MUST** authenticate sockets at the handshake with `auth.api.getSession({ headers })` from the same Better Auth instance as HTTP. **NEVER** write a second session parser.
+8. **MUST** authenticate sockets at the handshake with `auth.api.getSession({ headers })` from the same Better Auth instance as HTTP, in a `server.use` middleware registered in `ChatGateway.afterInit`, storing the user on `socket.data.user`. **NEVER** write a second session parser. The library's global `AuthGuard` does not run on gateway events (globals do not reach gateways).
 9. **MUST** send verification and reset emails through the `Mailer` token. **NEVER** call Resend from auth config directly.
 
 ### Authorization
 
-10. **MUST** check record permissions **in the service, after loading the record**: membership to read history, join the socket room, or send; ownership to rename, change the room password, or delete. Throw `ForbiddenException`. `RoomsService.assertMember(userId, roomId)` is the one membership check for other modules: 404 for a missing room, 403 for a non-member.
+10. **MUST** check record permissions **in the service, after loading the record**: membership to read history, join the socket room, or send (membership only: `message:send` does not require a prior `room:join`); ownership to rename, change the room password, or delete. Throw `ForbiddenException`. `RoomsService.assertMember(userId, roomId)` is the one membership check for other modules: 404 for a missing room, 403 for a non-member.
 11. **NEVER** trust ids from the body or socket payload for identity. The actor is always `@Session()` or the socket's authenticated user.
 
 ### Abuse limits and hardening
@@ -36,7 +36,8 @@ Authentication, authorization, and abuse limits. Nest is the only authority; the
     | `/api/auth/sign-in/*` | 10/min per IP | Better Auth `customRules` |
     | Global default | 100/min per user per route, per IP when anonymous | throttler |
     | `POST /rooms/:id/join` | 5/min per user + room, and 20/min per user across rooms, every attempt | throttler |
-    | `message:send` | 10 per 10 s per socket | throttler |
+    | Every socket event | 100/min per user (`socket.data.user.id`) | `WsThrottlerGuard` on `ChatGateway` |
+    | `message:send` | 10 per 10 s per user, not per socket | `WsThrottlerGuard` + `@Throttle` |
 14. **MUST** enable helmet, and CORS limited to the web origin with `credentials: true`.
 15. **MUST** cap message `content` at 2000 characters in the DTO.
 
