@@ -19,7 +19,7 @@ How `apps/api` is structured and which `nestjs-best-practices` rules apply. Proj
 8. **MUST** write ESM: relative imports end in `.js` (`./rooms.service.js`), even in `.ts` files.
 9. **MUST** name files `<name>.<role>.ts`: `rooms.controller.ts`, `rooms.service.ts`, `rooms.repository.ts`, `create-room.dto.ts`, `room.response.ts`, `chat.gateway.ts`.
 10. **MUST** keep shared, runtime-free contracts (`ApiError`, `*View`, socket event types) in `@tos-chat/shared`. Nest-only classes (DTOs, entities) stay in `apps/api`.
-11. **MUST** bind guards, pipes, and filters on `ChatGateway` itself (`@UseGuards(WsThrottlerGuard)`, `@UsePipes(...)`, `@UseFilters(WsApiExceptionFilter)`). App-level globals (`APP_GUARD`, `useGlobalPipes`, `useGlobalFilters`) do not apply to gateway handlers.
+11. **MUST** bind `@UseFilters(WsApiExceptionFilter)` on `ChatGateway`: the global exception filter does not reach gateway handlers. **NEVER** re-bind the global guards or `ValidationPipe` on the gateway: in Nest 12 `APP_GUARD` guards and `useGlobalPipes` already run on every gateway event, so a second binding runs them twice. Global guards must therefore handle the `ws` context (`UserThrottlerGuard` does).
 
 ## Skill rules not adopted (v1)
 

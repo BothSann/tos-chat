@@ -18,7 +18,7 @@ Authentication, authorization, and abuse limits. Nest is the only authority; the
 5. **MUST** enable `accountLinking` with `trustedProviders: ["github", "google"]` only. Telegram users get `<sub>@telegram.invalid` with `emailVerified: false` and link only from inside a session.
 6. **MUST** take secrets (`BETTER_AUTH_SECRET`, OAuth client secrets, `RESEND_API_KEY`) from validated config only. **NEVER** hardcode or log them.
 7. **MUST** read the actor with the library's `@Session()` decorator. **NEVER** read `req.user` or parse cookies in handlers.
-8. **MUST** authenticate sockets at the handshake with `auth.api.getSession({ headers })` from the same Better Auth instance as HTTP, in a `server.use` middleware registered in `ChatGateway.afterInit`, storing the user on `socket.data.user`. **NEVER** write a second session parser. The library's global `AuthGuard` does not run on gateway events (globals do not reach gateways).
+8. **MUST** authenticate sockets at the handshake with `auth.api.getSession({ headers })` from the same Better Auth instance as HTTP, in a `server.use` middleware registered in `ChatGateway.afterInit`, storing the user on `socket.data.user`. **NEVER** write a second session parser. The library's global `AuthGuard` also runs on every gateway event (Nest 12), so a revoked session gets a 401 ack on its next event, and the socket is disconnected.
 9. **MUST** send verification and reset emails through the `Mailer` token. **NEVER** call Resend from auth config directly.
 
 ### Authorization
@@ -36,8 +36,8 @@ Authentication, authorization, and abuse limits. Nest is the only authority; the
     | `/api/auth/sign-in/*` | 10/min per IP | Better Auth `customRules` |
     | Global default | 100/min per user per route, per IP when anonymous | throttler |
     | `POST /rooms/:id/join` | 5/min per user + room, and 20/min per user across rooms, every attempt | throttler |
-    | Every socket event | 100/min per user (`socket.data.user.id`) | `WsThrottlerGuard` on `ChatGateway` |
-    | `message:send` | 10 per 10 s per user, not per socket | `WsThrottlerGuard` + `@Throttle` |
+    | Every socket event | 100/min per user | global `UserThrottlerGuard` (socket-aware) |
+    | `message:send` | 10 per 10 s per user, not per socket | `@Throttle` on the handler |
 14. **MUST** enable helmet, and CORS limited to the web origin with `credentials: true`.
 15. **MUST** cap message `content` at 2000 characters in the DTO.
 
