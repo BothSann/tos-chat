@@ -24,6 +24,7 @@ Cut from v1 to keep it small, but **must-have** later. Each item is meant to bec
 
 ## Architecture and ops
 
+- [ ] **Re-check the session on open sockets**: a socket is authenticated once at the handshake, so a session revoked elsewhere keeps working until disconnect. Re-check with `getSession` on `message:send` or on a timer, and disconnect when it is gone
 - [ ] **Shared Redis store for throttling**: for when the API runs on more than one instance. In-memory counters count per instance and reset on restart or redeploy
 - [ ] **Web e2e loading-sequence tests**: Playwright `instant()` tests asserting what renders before uncached work resolves (`nextjs-app-architecture` → `references/testing.md`)
 - [ ] **ESLint guards for web rules**: enforce the rules that keep getting broken (e.g. no `*-queries` imports in `src/app/`, no barrels)

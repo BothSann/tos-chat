@@ -2,7 +2,7 @@
 
 A chat app built to learn NestJS by doing. Users log in with GitHub, Google, or email and password, see a list of rooms, and chat in real time. Rooms are **public** (join and chat) or **private** (password required to become a member).
 
-Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better Auth) on 2026-10-30; release scope, lesson order, and room rules updated on 2026-11-04; throttling keys and storage decided on 2026-11-05; per-user join cap and message history decided on 2026-11-06. Changes to these decisions should be recorded here.
+Agreed in a grilling session on 2026-10-28; auth replaced (Passport → Better Auth) on 2026-10-30; release scope, lesson order, and room rules updated on 2026-11-04; throttling keys and storage decided on 2026-11-05; per-user join cap and message history decided on 2026-11-06; the socket gateway and its three-lesson split decided on 2026-11-07. Changes to these decisions should be recorded here.
 
 **v1 is released when it is deployed and people can use it in a browser.**
 
@@ -75,15 +75,26 @@ Message(id cuid, roomId, authorId, content <= 2000 chars, createdAt,
 
 ## Socket contract
 
-Handshake: `auth.api.getSession({ headers })` from the handshake cookies → reject unauthenticated sockets. Per event: membership guard.
+`ChatGateway` uses `@WebSocketGateway()` defaults: namespace `/`, path `/socket.io`, no CORS option (same origin through Next in dev; tests connect to `app.listen(0)`). Event names and payloads are typed in `@tos-chat/shared` as `ClientToServerEvents`, `ServerToClientEvents`, and `Ack<T>`.
 
 | Direction | Event | Payload |
 | --- | --- | --- |
-| client → server | `room:join` | `{ roomId }` — must already be a member; subscribes the socket |
-| client → server | `room:leave` | `{ roomId }` |
-| client → server | `message:send` | `{ roomId, content }` → ack `{ message }` or `{ error }` |
+| client → server | `room:join` | `{ roomId }` → ack `{ roomId }`. Member only; subscribes the socket to `room:<roomId>`. Safe to repeat. No history: that stays on REST |
+| client → server | `room:leave` | `{ roomId }` → ack `{ roomId }`. Always ok, even if not subscribed |
+| client → server | `message:send` | `{ roomId, content }` → ack `{ message }` |
 | server → client | `message:new` | `{ message }` (saved row, server id + createdAt) |
-| server → client | `error` | `{ code, message }` |
+| server → client | `room:removed` | `{ roomId, reason: 'deleted' \| 'left' }`, sent before the socket is removed from the room |
+| server → client | `error` | `{ code, message }`, only for an event sent without an ack callback |
+
+- **Handshake:** `afterInit(server)` registers `server.use(async (socket, next) => …)`, which calls `auth.api.getSession({ headers: socket.handshake.headers })`. No session → `next(err)` with `err.data.code = 'UNAUTHORIZED'`, so the client gets `connect_error` and never connects. A session → `socket.data.user`, which handlers trust as the actor; payloads never carry identity.
+- **Per socket:** `handleConnection` joins the socket to `user:<userId>`, so "evict user X from room Y" is `server.in('user:X').socketsLeave('room:Y')`.
+- **Membership vs subscription:** membership (database) authorizes; subscription (`socket.join`, in memory, lost on reconnect) only controls delivery. `room:join` and `message:send` each call `RoomsService.assertMember`. `message:send` does **not** require a prior `room:join`.
+- **Send:** `content` is trimmed and must be 1–2000 characters. The gateway calls `MessagesService.create` (persist first), acks `{ ok: true, data: { message } }`, then broadcasts `message:new` with `socket.to('room:<roomId>')`: everyone except the sending socket, so the sender's other tabs still get it and the sender never dedupes its own message.
+- **Acks and errors:** every client → server event acks `{ ok: true, data } | { ok: false, error: ApiError }`. A handler returns the ok ack; `WsApiExceptionFilter` turns `WsException` and HTTP exceptions (404/403 from `assertMember`, 422 from validation, 429 from the throttler) into `ApiError` and calls the ack, or emits `error` when the client sent no ack callback.
+- **Globals do not reach gateways.** Nest builds gateway handlers without the app's global guards, pipes, and filters (`AuthGuard`, `UserThrottlerGuard`, the global `ValidationPipe`, `ApiExceptionFilter`). `ChatGateway` binds its own: `@UseFilters(WsApiExceptionFilter)`, `@UsePipes(new ValidationPipe(validationPipeOptions))` with the **same** options object as HTTP, and `@UseGuards(WsThrottlerGuard)`.
+- **Throttle:** `WsThrottlerGuard` extends `ThrottlerGuard`, keyed on `socket.data.user.id`: 100/min per user on every socket event, overridden with `@Throttle` to 10 per 10 s per user on `message:send`. Over the limit gives 429 `TOO_MANY_REQUESTS` with the wait in `message` ("Try again in N s"); `ApiError` gets no new field.
+- **Evictions:** `RoomsService` emits `room.deleted { roomId }` and `membership.left { roomId, userId }` with `@nestjs/event-emitter`, only after the write succeeds. `ChatGateway` sends `room:removed` and then calls `socketsLeave` (the whole room for a delete, `user:<userId>` for a leave).
+- **Revoked sessions:** a socket is authenticated once. If its session is revoked elsewhere, it keeps working until it disconnects. Accepted for v1; a re-check is in [BACKLOG.md](./BACKLOG.md).
 
 Membership is created over REST only; the socket only subscribes. Messages are persisted first, then broadcast.
 
@@ -117,7 +128,7 @@ Agreed 2026-10-28. The how-to lives in `.claude/rules/api-*.md`; this section re
 - **Data:** `prisma` / `@prisma/client` pinned to 7.10.1 with `PrismaPg`; one `PrismaService`; a repository per module; services never touch Prisma.
 - **Contract:** one `ApiError { statusCode, code, message, fields? }` in `@tos-chat/shared`; validation → 422 + `fields`; response DTOs with `excludeExtraneousValues` implementing shared `*View` types; socket acks `{ ok, data } | { ok: false, error }`.
 - **Structure:** modules `config`, `prisma`, `auth`, `mail`, `users`, `rooms`, `messages`, `chat`, `health`, `throttling` (added 2026-11-05: imported after `AuthModule` so its guard runs second and can read the user); `@nestjs/event-emitter` for cross-module side effects (`room.deleted`); config validated by zod.
-- **Throttling:** Better Auth's limiter (database storage) on `/api/auth/*` (100/min, 10/min on sign-in); `@nestjs/throttler` 100/min default per user per route (per IP when anonymous, because server components reach Nest from the Next server's IP), 5/min per user + room and 20/min per user across rooms on every join attempt, public or private, 10 per 10 s per socket on `message:send`. Counters stay in memory for v1; a shared store is in [BACKLOG.md](./BACKLOG.md).
+- **Throttling:** Better Auth's limiter (database storage) on `/api/auth/*` (100/min, 10/min on sign-in); `@nestjs/throttler` 100/min default per user per route (per IP when anonymous, because server components reach Nest from the Next server's IP), 5/min per user + room and 20/min per user across rooms on every join attempt, public or private; on sockets, `WsThrottlerGuard` gives 100/min per user per event and 10 per 10 s per user on `message:send` (per user, not per socket, so extra tabs do not multiply the limit). Counters stay in memory for v1; a shared store is in [BACKLOG.md](./BACKLOG.md).
 - **Not adopted:** Fastify, caching, API versioning, microservices (except `/health`), DDD, tracing.
 
 ## How we build it
@@ -139,8 +150,11 @@ Updated 2026-11-04: throttling gets its own lesson, the web UI and deployment jo
 5. Join/leave, private rooms (`type`, `passwordHash` migration, argon2)
 6. Throttling: `@nestjs/throttler`, global guard with a user tracker (IP when anonymous), user + room tracker on join
 7. Message history: `Message` model, `GET /rooms/:id/messages` with cursor pagination, `assertMember`. Read-only: e2e tests seed messages through `PrismaService`, and no temporary write route is added
-8. Socket.IO Gateway: handshake auth, membership guard, events, `message:send` (the first message write, `MessagesService.create`) and its throttle
-9. Web UI: rooms and live chat, typed by the owner (may split into several lessons)
+8. Socket.IO Gateway, split on 2026-11-07 into three lessons (see Socket contract):
+   - **8a. Connect and subscribe:** `ChatModule` + `ChatGateway`, handshake auth in `afterInit`, the `user:<id>` room in `handleConnection`, `room:join`/`room:leave` with `assertMember`, `WsApiExceptionFilter` and the ack/`error` shapes, shared `validationPipeOptions` bound with `@UsePipes`, the shared event types, and an e2e with `socket.io-client` + `signInNewUser`
+   - **8b. Send:** `message:send` (the first message write, `MessagesService.create`), payload validation, persist-then-broadcast `message:new`, and `WsThrottlerGuard`
+   - **8c. Evict:** `@nestjs/event-emitter`, `room.deleted` and `membership.left` → `room:removed` → `socketsLeave`
+9. Web UI: rooms and live chat, typed by the owner (may split into several lessons). Open question for its start: Next.js rewrites may not proxy WebSocket upgrades, so Socket.IO may fall back to long-polling through `/socket.io`, or the web may connect to `:4000` directly
 10. Email and password: verification, reset, `MailModule` with the console mailer, sign-in forms
 11. Google + account linking
 12. Hardening sweep + e2e coverage
