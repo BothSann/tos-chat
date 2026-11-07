@@ -60,6 +60,14 @@ export class RoomsService {
     return room;
   }
 
+  async assertMember(userId: string, roomId: string): Promise<void> {
+    await this.findRoom(roomId);
+
+    if (!(await this.rooms.isMember(userId, roomId))) {
+      throw new ForbiddenException('Only room members can do this');
+    }
+  }
+
   private async findOwnedRoom(userId: string, roomId: string): Promise<Room> {
     const room = await this.findRoom(roomId);
 

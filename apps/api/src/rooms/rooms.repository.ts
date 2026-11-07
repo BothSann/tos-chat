@@ -120,6 +120,17 @@ export class RoomsRepository {
     return { ...room, isMember: memberships.length > 0 };
   }
 
+  async isMember(userId: string, roomId: string): Promise<boolean> {
+    const membership = await this.prisma.membership.findUnique({
+      where: {
+        userId_roomId: { userId, roomId },
+      },
+      select: { userId: true },
+    });
+
+    return membership !== null;
+  }
+
   async addMember(userId: string, roomId: string): Promise<void> {
     // `upsert` can throw P2002 when joins race. This insert ignores a duplicate.
     await this.prisma.membership.createMany({

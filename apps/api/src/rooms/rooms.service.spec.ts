@@ -14,6 +14,7 @@ describe('RoomsService', () => {
     findAllForViewer: vi.fn(),
     findById: vi.fn(),
     findForJoin: vi.fn(),
+    isMember: vi.fn(),
     addMember: vi.fn(),
     removeMember: vi.fn(),
     update: vi.fn(),
@@ -334,6 +335,36 @@ describe('RoomsService', () => {
       await expect(service.join('cuser2', 'cmissing', {})).rejects.toThrow(
         new NotFoundException('Room not found'),
       );
+    });
+  });
+
+  describe('assertMember', () => {
+    it('passes for a member', async () => {
+      repository.findById.mockResolvedValue(general);
+      repository.isMember.mockResolvedValue(true);
+
+      await expect(
+        service.assertMember('cuser2', general.id),
+      ).resolves.toBeUndefined();
+      expect(repository.isMember).toHaveBeenCalledWith('cuser2', general.id);
+    });
+
+    it('throws 403 for a non-member', async () => {
+      repository.findById.mockResolvedValue(general);
+      repository.isMember.mockResolvedValue(false);
+
+      await expect(service.assertMember('cuser2', general.id)).rejects.toThrow(
+        new ForbiddenException('Only room members can do this'),
+      );
+    });
+
+    it('throws 404 when the room does not exist', async () => {
+      repository.findById.mockResolvedValue(null);
+
+      await expect(service.assertMember('cuser2', 'cmissing')).rejects.toThrow(
+        new NotFoundException('Room not found'),
+      );
+      expect(repository.isMember).not.toHaveBeenCalled();
     });
   });
 
